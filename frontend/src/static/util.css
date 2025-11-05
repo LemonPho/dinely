@@ -1,0 +1,45 @@
+
+.rounded-15{
+    border-radius: 15px;
+}
+
+.link-no-decorations{
+    text-decoration: none;
+    color: black;
+}
+
+.link-no-decorations:hover{
+    text-decoration: none;
+    color: black;
+}
+
+.expand{
+    max-height: 0px;
+    transition: padding 0.15s ease, max-height 0.15s ease;
+    padding: 0px;
+    overflow: hidden;
+}
+
+.clickable:hover{
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.fading-circle {
+    background-color: #0000007f; 
+    border-radius: 50%;        
+    opacity: 0.8;                
+    animation: fadeInOut 2s infinite ease-in-out;
+    aspect-ratio: 1/1;
+}
+
+@keyframes fadeInOut{
+    0%, 100% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}

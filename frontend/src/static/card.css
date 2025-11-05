@@ -1,0 +1,57 @@
+.custom-card{
+    border-radius: 15px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 0.5rem;
+}
+
+.custom-card-header{
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    border-radius: 15px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 0.5px solid rgb(193, 193, 193);
+    padding: 1rem;
+}
+
+.custom-card-body{
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 0.5px solid rgb(193, 193, 193);
+    border-radius: 15px;
+    margin-top: 0.75rem;
+    overflow: auto;
+}
+
+.race-standings-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.race-standings-position-change{
+    width: 25px;
+    text-align: center;
+}
+
+.race-standings-position{
+    width: 25px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.race-standings-username{
+    flex: 1;
+    text-align: left;
+}
+
+.race-standings-points{
+    width: 50px;
+    text-align: center;
+    font-weight: bold;
+    color: #555;
+}
