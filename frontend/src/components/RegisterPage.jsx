@@ -1,114 +1,81 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Navigate, Link } from "react-router-dom";
+import { useUserContext } from "../application-context/UserContext";
+import { useAuthenticationContext } from "../application-context/AuthenticationContext";
+import TextInput from "./util-components/TextInput";
+
+import '../static/card.css'
+import '../static/util.css'
 
 export default function RegisterPage() {
-    
+  const { register, loading } = useAuthenticationContext();
+  const { user, userLoading } = useUserContext();
 
-    const [loading, setLoading] = useState(false);
+  const [registerInput, setRegisterInput] = useState({
+    email: "",
+    password: "",
+    passwordConfirmation: "",
+  })
 
-    const [registerObject, setRegisterObject] = useState({
-        username: "",
-        email: "",
-        password: "",
-        passwordConfirmation: "",
-    })
+  const [emailInvalid, setEmailInvalid] = useState(false);
+  const [passwordInvalid, setPasswordInvalid] = useState(false);
 
-    const [usernameInvalid, setUsernameInvalid] = useState(false);
-    const [emailInvalid, setEmailInvalid] = useState(false);
-    const [passwordInvalid, setPasswordInvalid] = useState(false);
+  function handleEmailInput(string) {
+    setRegisterInput({
+      ...registerInput,
+      email: string,
+    });
+  }
 
-    async function registerAccount(){
-        if(loading){
-            return;
-        }
+  function handlePasswordInput(string) {
+    setRegisterInput({
+      ...registerInput,
+      password: string,
+    });
+  }
 
-        resetApplicationMessages();
-        setUsernameInvalid(false);
-        setEmailInvalid(false);
-        setPasswordInvalid(false);
-        setLoading(true);
-        setLoadingMessage("Loading...");
+  function handlePasswordConfirmationInput(string) {
+    setRegisterInput({
+      ...registerInput,
+      passwordConfirmation: string,
+    });
+  }
 
-        const registerResponse = await submitRegistration(username, email, password, passwordConfirmation);
-
-        if(registerResponse.error){
-            setErrorMessage("An error ocurred while submiting the account");
-            setLoading(false);
-            setLoadingMessage(false)
-            return;
-        }
-
-        if(registerResponse.status === 400){
-            let message = registerResponse.usernameUnique ? "" : "Username is already taken\n";
-            message += registerResponse.usernameValid ? "" : "Username isn't valid, be sure to use only numbers and letters\n";
-            message += registerResponse.emailUnique ? "" : "Email is already in use\n";
-            message += registerResponse.emailValid ? "" : "Email isn't valid\n";
-            message += registerResponse.passwordsMatch ? "" : "Passwords don't match\n";
-            message += registerResponse.passwordValid ? "" : "Passwords need at least 8 characters and can't be 'simple'\n";
-            message += registerResponse.invalidData ? "Make sure the password is not simple (atleast 8 characters in length with 2 numbers)\n" : "";
-
-            if(!registerResponse.usernameUnique || !registerResponse.usernameValid){
-                setUsernameInvalid(true);
-            }
-
-            if(!registerResponse.emailUnique || !registerResponse.emailValid){
-                setEmailInvalid(true);
-            }
-
-            if(!registerResponse.passwordValid || !registerResponse.passwordsMatch){
-                setPasswordInvalid(true);
-            }
-
-            if(registerResponse.usernameUnique && registerResponse.usernameValid && registerResponse.emailUnique && registerResponse.emailValid && registerResponse.passwordValid && registerResponse.passwordsMatch && registerResponse.invalidData){
-                setPasswordInvalid(true);
-            }
-            setErrorMessage(message);
-            setLoading(false);
-            setLoadingMessage(false);
-            return;
-        }
-
-        if(registerResponse.status === 200){
-            setSuccessMessage("Account created, check your email to finalize the creation")
-            setLoading(false);
-            setLoadingMessage(false);
-            return;
-        }
-
-        setErrorMessage("There was an error while submiting the account information");
-        setLoading(false);
-        setLoadingMessage(false);
-        return;
-    }
-
-    if(contextLoading){
-        return null;
-    }
-
-    if(loggedIn){
-        return(
-            <div>
-                <Navigate replace to="/"/>
-            </div>
-        )
-    }
-
-    return(
-        <div className="card rounded-15 element-background-color element-border-color mx-auto" style={{width: "21rem"}}>
-            <div className="card-header d-flex justify-content-center rounded-15 nested-element-color m-2">
-                <h2>Sign Up</h2>
-            </div>
-            <div className="card-body rounded-15 nested-element-color m-2">
-                <TextInput type={"email"} className={"mb-2"} placeholder={"Username"} value={username} setValue={setUsername} onEnterFunction={registerAccount} outline={usernameInvalid}/>
-                <TextInput type={"email"} className={"mb-2"} placeholder={"Email"} value={email} setValue={setEmail} onEnterFunction={registerAccount} outline={emailInvalid} />
-                <TextInput type="password" className={"mb-2"} placeholder="Password" value={password} setValue={setPassword} onEnterFunction={registerAccount} outline={passwordInvalid}/>
-                <TextInput type="password" className={"mb-2"} placeholder="Confirm password" value={passwordConfirmation} setValue={setPasswordConfirmation} onEnterFunction={registerAccount} outline={passwordInvalid}/>
-
-                {loading && <button className="btn btn-primary w-100 rounded-15 mt-2" disabled>Loading...</button>}
-                {!loading && <button className="btn btn-primary w-100 rounded-15 mt-2" onClick={registerAccount}>Sign up</button>}
-                <hr />
-                <Link to="/login" className="btn btn-success w-100 rounded-15">Login to an account</Link>
-            </div>
-        </div>
+  async function handleRegister() {
+    await register(
+      registerInput,
+      setEmailInvalid,
+      setPasswordInvalid
     );
+  }
+
+  if (userLoading){
+    return;
+  }
+
+  if (user != undefined) {
+    return (
+      <div>
+        <Navigate replace to="/" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="custom-card rounded-15 mx-auto mt-2" style={{ width: "21rem" }}>
+      <div className="custom-card-header">
+        <h2>Sign Up</h2>
+      </div>
+      <div className="custom-card-body">
+        <TextInput type={"email"} className={"mb-2"} placeholder={"Email"} value={registerInput.email} setValue={handleEmailInput} onEnterFunction={handleRegister} outline={emailInvalid} />
+        <TextInput type="password" className={"mb-2"} placeholder="Password" value={registerInput.password} setValue={handlePasswordInput} onEnterFunction={handleRegister} outline={passwordInvalid} />
+        <TextInput type="password" className={"mb-2"} placeholder="Confirm password" value={registerInput.passwordConfirmation} setValue={handlePasswordConfirmationInput} onEnterFunction={handleRegister} outline={passwordInvalid} />
+
+        {loading && <button className="btn btn-primary w-100 rounded-15 mt-2" disabled>Loading...</button>}
+        {!loading && <button className="btn btn-primary w-100 rounded-15 mt-2" onClick={handleRegister}>Sign up</button>}
+        <hr />
+        <Link to="/login" className="btn btn-success w-100 rounded-15">Login to an account</Link>
+      </div>
+    </div>
+  );
 }

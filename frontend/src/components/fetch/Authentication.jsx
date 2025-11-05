@@ -1,58 +1,139 @@
-export async function submitLogin(isUsername, primaryKey, password){
-    let response = {
-        error: false,
-        status: 0,
+export function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
     }
-
-    try {
-        let csrfTokenStatus = await loadCsrfToken();
-        if(csrfTokenStatus.error){
-            response.error = true;
-            return response;
-        }
-
-        const apiResponse = await fetch(`${baseUrl}/authentication/login/`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "X-CSRF-TOKEN": csrfTokenStatus.token,
-                "Content-type": "application/json",
-            },
-            body: JSON.stringify({
-                IsUsername: isUsername,
-                LoginKey: primaryKey,
-                Password: password,
-            }),
-        });
-
-        response.status = apiResponse.status;
-        response.error = apiResponse.status === 500;
-    } catch(error) {
-        response.error = true;
-    }
-
-    return response;
+  }
+  return cookieValue;
 }
 
-export async function getCsrfToken(){
-    let response = {
-        error: false,
-        csrfToken: "",
-        status: null
-    };
+export async function submitLogin(loginInput) {
+  let response = {
+    error: false,
+    status: 0,
+  }
 
-    try{
-        const apiResponse = await fetch("http://localhost:8000/api/csrf/", {
-            credentials: "include"
-        });
-        const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+  try {
+    const csrftoken = getCookie("csrftoken");
 
-        response.error = apiResponse.status === 500 ? apiResponse : false;
-        response.csrfToken = apiResponse.status === 200 ? apiResult : false;
-        response.status = apiResponse.status;
-    } catch(error){
-        response.error = error;
+    const apiResponse = await fetch(`/api/authentication/login/`, {
+      method: "POST",
+      credentials: "include",
+      mode: "cors",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: loginInput.primaryKey,
+        password: loginInput.password,
+      }),
+    });
+
+    response.status = apiResponse.status;
+    response.error = apiResponse.status === 500;
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function getCsrfToken() {
+  let response = {
+    error: false,
+    csrfToken: "",
+    status: null
+  };
+
+  try {
+    const apiResponse = await fetch("/api/authentication/csrf/", {
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500 ? apiResponse : false;
+    response.csrfToken = apiResponse.status === 200 ? apiResult : false;
+    response.status = apiResponse.status;
+  } catch (error) {
+    response.error = error;
+  }
+
+  return response;
+}
+
+export async function getCurrentUser() {
+  let response = {
+    user: {},
+    status: 0,
+    error: false,
+  }
+
+  try {
+    const apiResponse = await fetch(`/api/user/get-current-user/`, {
+      method: "GET",
+      credentials: "include",
+      mode: "cors",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.user = apiResponse.status === 200 ? apiResult.user : undefined;
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function submitRegistration(registerInput) {
+  let response = {
+    error: false,
+    emailUnique: null,
+    emailValid: null,
+    passwordsMatch: null,
+    passwordValid: null,
+    invalidData: null,
+    status: null,
+  }
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/authentication/register/`, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "X-CSRFToken": csrftoken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: registerInput.email,
+        password: registerInput.password, 
+        passwordConfirmation: registerInput.passwordConfirmation,
+      })
+    });
+    const apiResult = apiResponse.status === 200 || apiResponse.status === 400 ? await apiResponse.json() : false;
+
+    if (apiResult) {
+      response.emailUnique = apiResult.email_unique;
+      response.emailValid = apiResult.email_valid;
+      response.passwordsMatch = apiResult.passwords_match;
+      response.passwordValid = apiResult.password_valid;
+      response.invalidData = apiResult.invalid_data;
     }
+    response.status = apiResponse.status;
 
-    return response;
+  } catch (error) {
+    response.error = error;
+  }
+
+  return response;
 }
