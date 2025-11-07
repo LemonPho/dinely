@@ -26,7 +26,6 @@ export async function submitLogin(loginInput) {
     const apiResponse = await fetch(`/api/authentication/login/`, {
       method: "POST",
       credentials: "include",
-      mode: "cors",
       headers: {
         "X-CSRFTOKEN": csrftoken,
         "Content-type": "application/json",
@@ -80,7 +79,6 @@ export async function getCurrentUser() {
     const apiResponse = await fetch(`/api/user/get-current-user/`, {
       method: "GET",
       credentials: "include",
-      mode: "cors",
     });
     const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
 
@@ -109,7 +107,6 @@ export async function submitRegistration(registerInput) {
     const csrftoken = getCookie("csrftoken");
     const apiResponse = await fetch(`/api/authentication/register/`, {
       method: "POST",
-      mode: "cors",
       headers: {
         "X-CSRFToken": csrftoken,
         "Content-Type": "application/json",

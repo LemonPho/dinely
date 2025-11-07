@@ -1,5 +1,5 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
-import { getCsrfToken, submitLogin, submitRegistration } from "../components/fetch/Authentication";
+import { getCsrfToken, submitLogin, submitRegistration } from "../fetch/Authentication";
 import { useMessagesContext } from "./MessagesContext";
 
 export const AuthenticationContext = createContext();

@@ -8,7 +8,7 @@ import { useUserContext } from "../application-context/UserContext";
 import '../static/card.css'
 import '../static/util.css'
 
-function LoginPage() {
+export default function LoginPage() {
   const { login, loading: loginLoading } = useAuthenticationContext();
   const { retrieveCurrentUser, userLoading, user } = useUserContext();
 
@@ -68,5 +68,3 @@ function LoginPage() {
     </div>
   );
 }
-
-export default LoginPage;
