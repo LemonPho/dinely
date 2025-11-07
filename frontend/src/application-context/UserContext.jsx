@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { getCurrentUser } from "../components/fetch/Authentication";
+import { getCurrentUser } from "../fetch/Authentication";
 
 const UserContext = createContext();
 
