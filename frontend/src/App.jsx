@@ -1,17 +1,7 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import LoginPage from './components/LoginPage'
-import RegisterPage from './components/RegisterPage'
+import Home from "./pages/Home"; // Importamos la página principal
 
 function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Router>
-  )
+  return <Home />;
 }
 
-export default App
+export default App;
