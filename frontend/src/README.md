@@ -9,7 +9,7 @@ Cualquier componente en la cual su finalidad es proporcionar HTML al usuario, es
 ### Fetch
 Son los archivos que contienen las funciones necesarias para hacer peticiones al backend. Ejemplos son: solicitar informacion del usuario ingresado, hacer login, crear cuenta, crear mesa, etc. Basicamente cualquier operacion que requiere de la base de datos. Es recomendable que se dividan los funciones en archivos de su contexto, por ejemplo operacioens relacionados a mesa: `fetch/table.jsx`, usuario: `fetch/user.jsx`.
 
-### Static
+### styles
 Todos los archivos `.css` que se usa, por cada plantilla de una "estructura" que se hace, se recomienda hacer un archivo `.css` por cada uno. Un ejemplo es el `card.css` que trae todas las clases necesarias para hacer un card.
 
 ### Regla general
