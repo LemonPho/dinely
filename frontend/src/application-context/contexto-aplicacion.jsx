@@ -1,12 +1,12 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
-import { getCsrfToken, submitLogin, submitRegistration } from "../fetch/Authentication";
-import { useMessagesContext } from "./MessagesContext";
+import { getCsrfToken, submitLogin, submitRegistration } from "../fetch/authentication";
+import { useContextoMensajes } from "./contexto-mensajes";
 
 export const AuthenticationContext = createContext();
 
 export function AuthenticationProvider({ children }) {
 
-  const { resetMessages, setLoadingMessage, setErrorMessage, setSuccessMessage } = useMessagesContext();
+  const { resetMessages, setMensajeCarga, setMensajeError, setMensajeExito } = useContextoMensajes();
 
   const [loading, setLoading] = useState(false);
 
@@ -17,30 +17,30 @@ export function AuthenticationProvider({ children }) {
 
     setLoading(true);
     resetMessages();
-    setLoadingMessage("Loading...");
+    setMensajeCarga("Loading...");
 
     const loginResponse = await submitLogin(loginInput);
 
-    setLoadingMessage("");
+    setMensajeCarga("");
     setLoading(false);
 
     if (loginResponse.error) {
-      setErrorMessage("Error logging in");
+      setMensajeError("Error logging in");
       return;
     }
 
     if (loginResponse.status == 400) {
-      setErrorMessage("Invalid credentials");
+      setMensajeError("Invalid credentials");
       return;
     }
 
     if (loginResponse.status === 403) {
-      setErrorMessage("Your account is not active");
+      setMensajeError("Your account is not active");
       return;
     }
 
     if (loginResponse.status === 200) {
-      setLoadingMessage("");
+      setMensajeCarga("");
       setLoading(false);
       navigate("/");
       return;
@@ -56,14 +56,14 @@ export function AuthenticationProvider({ children }) {
     resetMessages();
     setEmailInvalid(false);
     setPasswordInvalid(false);
-    setLoadingMessage("Loading...");
+    setMensajeCarga("Loading...");
 
     const registerResponse = await submitRegistration(registerInput);
 
     if (registerResponse.error) {
-      setErrorMessage("An error ocurred while submiting the account");
+      setMensajeError("An error ocurred while submiting the account");
       setLoading(false);
-      setLoadingMessage("");
+      setMensajeCarga("");
       return;
     }
 
@@ -87,22 +87,22 @@ export function AuthenticationProvider({ children }) {
       if (registerResponse.usernameUnique && registerResponse.usernameValid && registerResponse.emailUnique && registerResponse.emailValid && registerResponse.passwordValid && registerResponse.passwordsMatch && registerResponse.invalidData) {
         setPasswordInvalid(true);
       }
-      setErrorMessage(message);
+      setMensajeError(message);
       setLoading(false);
-      setLoadingMessage("");
+      setMensajeCarga("");
       return;
     }
 
     if (registerResponse.status === 200) {
-      setSuccessMessage("Account created, check your email to finalize the creation");
+      setMensajeExito("Account created, check your email to finalize the creation");
       setLoading(false);
-      setLoadingMessage("");
+      setMensajeCarga("");
       return;
     }
 
-    setErrorMessage("There was an error while submiting the account information");
+    setMensajeError("There was an error while submiting the account information");
     setLoading(false);
-    setLoadingMessage("");
+    setMensajeCarga("");
     return;
   }
 

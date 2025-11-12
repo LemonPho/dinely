@@ -1,0 +1,1164 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
+:root {
+  --color-primary: #e67e22;
+  --color-primary-dark: #ca6f1e;
+  --color-bg: #fff7ed;
+  --color-bg-alt: #ffe7c5;
+  --color-text: #1e1e1e;
+  --color-text-soft: #555555;
+}
+
+/* GENERAL */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 👇 Añadido: asegurar ancho completo y evitar scroll horizontal */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%; /* 👈 añadido por seguridad */
+}
+
+main {
+  flex: 1;
+}
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* NAVBAR */
+
+.navbar {
+  background-color: #2c2c2c;
+  color: #f5f5f5;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-logo {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 0.95rem;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 1.6rem;
+}
+
+.navbar-links button {
+  background: none;
+  border: none;
+  color: #f5f5f5;
+  font: inherit;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+}
+
+.navbar-links button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 0%;
+  height: 2px;
+  background-color: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.navbar-links button:hover::after {
+  width: 100%;
+}
+
+/* HERO */
+
+.hero {
+  position: relative;
+  min-height: 60vh;
+  color: #ffffff;
+
+  /* degradado oscuro encima de la foto */
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55)),
+    url("../assets/hero-restaurant.jpeg"); /* 👈 RUTA CORRECTA */
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  display: flex;
+  align-items: center;
+}
+
+
+/* 👇 NUEVO: centrar y limitar ancho del contenido del hero */
+.hero-content {
+  width: 100%;
+  text-align: center;
+  padding: 4rem 1.5rem 3rem;
+}
+
+.hero-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+  font-size: 1rem;
+  max-width: 650px;
+  margin: 0 auto 2rem;
+  color: #f7f7f7;
+}
+
+/* 👇 NUEVO: distribución de botones del hero */
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* BOTONES */
+
+.btn-primary,
+.btn-secondary,
+.btn-cta {
+  border-radius: 999px;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: var(--color-primary);
+}
+
+.btn-secondary:hover {
+  background-color: #f5f5f5;
+  transform: translateY(-1px);
+}
+
+.btn-cta {
+  background-color: #ffffff;
+  color: #c0392b;
+}
+
+/* FEATURES (sección intermedia) */
+
+.features {
+  background: linear-gradient(135deg, #fff7ed, #ffe7c5);
+  padding: 3rem 0;
+}
+
+.section-title {
+  font-size: 1.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.features .container {
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.4rem;
+  margin-top: 1rem;
+}
+
+.feature-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 1.2rem 1.4rem;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+  text-align: left;
+}
+
+.feature-card h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.feature-card p {
+  font-size: 0.9rem;
+  color: var(--color-text-soft);
+}
+
+.review-name {
+  display: block;
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+  color: var(--color-primary-dark);
+}
+
+/* CTA “VEN Y DEGUSTA NUESTROS PLATILLOS” */
+
+.cta-banner {
+  background: linear-gradient(120deg, #e67e22, #f1c40f);
+  color: #ffffff;
+}
+
+.cta-overlay {
+  padding: 3rem 0;
+}
+
+.cta-content {
+  text-align: center;
+}
+
+.cta-content h2 {
+  font-size: 1.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.cta-content p {
+  max-width: 620px;
+  margin: 0 auto 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* SECCIÓN INFO (ubicación/contacto) */
+
+.info-section {
+  padding: 3rem 0;
+  background-color: #ffffff;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.info-list {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 1rem;
+}
+
+.info-list li {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.info-card {
+  background-color: #fff7ed;
+  border-radius: 16px;
+  padding: 1.4rem;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+}
+
+/* OPINIONES */
+
+.reviews-section {
+  padding: 3rem 0 3.5rem;
+  background-color: #faf5ff;
+}
+
+/* FOOTER */
+
+.footer {
+  background-color: #1f2933;
+  color: #d1d5db;
+  padding: 1rem 0;
+  font-size: 0.85rem;
+}
+
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .hero-content {
+    padding-top: 4rem;
+  }
+
+  .hero-title {
+    font-size: 1.9rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .navbar-links {
+    gap: 0.9rem;
+  }
+
+  .navbar-links button {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+  }
+}
+
+/* ============ PÁGINA RESERVAR MESA ============ */
+
+.reservation-page {
+  padding: 3rem 0 3.5rem;
+  background: linear-gradient(135deg, #fff7ed, #ffe7c5);
+}
+
+.reservation-header {
+  text-align: center;
+  max-width: 650px;
+  margin: 0 auto 2.5rem;
+}
+
+.reservation-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.reservation-header p {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+.reservation-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+/* Tarjeta del formulario */
+.reservation-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 1.8rem 1.6rem;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+.reservation-card h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+/* Formulario */
+.reservation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.15);
+}
+
+.zone-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  font-size: 0.9rem;
+}
+
+.zone-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Botón y mensaje de confirmación */
+.form-actions {
+  margin-top: 0.6rem;
+}
+
+.reservation-message {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  color: var(--color-primary-dark);
+}
+
+/* Columna lateral con info */
+.reservation-info {
+  background-color: #fffdf8;
+  border-radius: 18px;
+  padding: 1.6rem 1.5rem;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+  font-size: 0.9rem;
+}
+
+.reservation-info h3 {
+  margin-bottom: 0.6rem;
+  font-size: 1.1rem;
+}
+
+.reservation-info p {
+  margin-bottom: 0.8rem;
+  color: var(--color-text-soft);
+}
+
+.reservation-info ul {
+  list-style: disc;
+  padding-left: 1.2rem;
+}
+
+.reservation-info li {
+  margin-bottom: 0.4rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .reservation-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ==== BLOQUE DE DISPONIBILIDAD DE HORARIOS ==== */
+
+.availability-section {
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid #f3e0d0;
+}
+
+.availability-section h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.6rem;
+}
+
+.availability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.slot-button {
+  padding: 0.4rem 0.3rem;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background-color: #ffffff;
+  color: var(--color-text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.1s ease, box-shadow 0.1s ease,
+    background-color 0.1s ease, color 0.1s ease;
+}
+
+.slot-available:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: #fff7ed;
+}
+
+.slot-unavailable {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.slot-selected {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+/* === BOTÓN VOLVER AL INICIO === */
+.back-home-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0 3rem;
+}
+
+.btn-back-home {
+  display: inline-block;
+  background-color: #2c2c2c;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.btn-back-home:hover {
+  background-color: var(--color-primary);
+  color: #fff;
+  transform: translateY(-2px);
+}
+/* ===== PÁGINA DE MENÚ (ESTILO POSTER) ===== */
+
+.menu-page {
+  padding: 3rem 0 3.5rem;
+  background: linear-gradient(135deg, #fff7ed, #ffe7c5);
+}
+
+.menu-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+}
+
+.menu-eyebrow {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-primary-dark);
+  margin-bottom: 0.2rem;
+}
+
+.menu-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+
+.menu-header p {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+/* FILAS DEL MENÚ: ENTRADA / COMIDA / BEBIDA */
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  background-color: #ffffff;
+  border-radius: 22px;
+  padding: 1.8rem 2rem;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+  margin-bottom: 1.8rem;
+}
+
+.menu-row-reverse {
+  flex-direction: row-reverse;
+}
+
+/* Información de texto */
+
+.menu-info {
+  flex: 1.2;
+}
+
+.menu-info h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.menu-label {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.9rem;
+  border-radius: 999px;
+  margin-bottom: 0.4rem;
+}
+
+.menu-label.entrada {
+  background-color: #ffe9c7;
+  color: #c56a1a;
+}
+
+.menu-label.comida {
+  background-color: #fde2ff;
+  color: #9b4d96;
+}
+
+.menu-label.bebida {
+  background-color: #dff6ff;
+  color: #0b7285;
+}
+
+/* Lista de platillos con precio */
+
+.menu-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+
+.menu-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.95rem;
+  padding: 0.25rem 0;
+}
+
+.menu-list li span:first-child {
+  color: var(--color-text);
+}
+
+.menu-list li span:last-child {
+  font-weight: 600;
+}
+
+/* Columna de imagen */
+
+.menu-illustration {
+  flex: 0.9;
+  display: flex;
+  justify-content: center;
+}
+
+.menu-image {
+  width: 210px;
+  height: 210px;
+  object-fit: cover;
+  border-radius: 999px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+  .menu-row,
+  .menu-row-reverse {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .menu-info {
+    order: 1;
+  }
+
+  .menu-illustration {
+    order: 0;
+  }
+
+  .menu-list li {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 600px) {
+  .menu-page {
+    padding: 2.5rem 0 3rem;
+  }
+
+  .menu-row {
+    padding: 1.4rem 1.3rem;
+  }
+
+  .menu-image {
+    width: 180px;
+    height: 180px;
+  }
+}
+/* ==== NAVBAR LINKS ==== */
+.navbar-links a {
+  text-decoration: none;
+  color: #f5f5f5;
+  font-weight: 500;
+  transition: color 0.2s ease, border-bottom 0.2s ease;
+  position: relative;
+}
+
+.navbar-links a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background-color: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.navbar-links a:hover::after {
+  width: 100%;
+}
+
+.navbar-links a:hover {
+  color: var(--color-primary);
+}
+/* ==== PÁGINA UBICACIÓN / CONTACTO ==== */
+
+.location-page {
+  padding: 3rem 0 3.5rem;
+  background: linear-gradient(135deg, #fff7ed, #ffe7c5);
+}
+
+.location-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+}
+
+.location-eyebrow {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-primary-dark);
+  margin-bottom: 0.2rem;
+}
+
+.location-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+
+.location-header p {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+/* GRID PRINCIPAL */
+
+.location-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+  gap: 1.8rem;
+}
+
+/* Tarjeta de datos del restaurante */
+
+.location-card {
+  background-color: #ffffff;
+  border-radius: 22px;
+  padding: 1.8rem 1.7rem;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+.location-card h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.location-block + .location-block {
+  margin-top: 1rem;
+}
+
+.location-block h3 {
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.location-block p,
+.location-block ul {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+.location-block ul {
+  padding-left: 1rem;
+}
+
+.location-note {
+  margin-top: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--color-text-soft);
+}
+
+/* COLUMNA LATERAL (mapa + formulario) */
+
+.location-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.map-card,
+.contact-card {
+  background-color: #ffffff;
+  border-radius: 22px;
+  padding: 1.4rem 1.4rem 1.5rem;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+.map-card h2,
+.contact-card h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.map-card p,
+.contact-card p {
+  font-size: 0.9rem;
+  color: var(--color-text-soft);
+}
+
+.map-placeholder {
+  margin-top: 0.8rem;
+  height: 180px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #c4d7ff, #e0f7ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1f2933;
+}
+
+/* Formulario de contacto */
+
+.contact-form .form-group {
+  margin-top: 0.7rem;
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid #dddddd;
+  font: inherit;
+}
+
+.contact-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.contact-form button {
+  margin-top: 0.9rem;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+  .location-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ===== RESUMEN DE RESERVA CONFIRMADA ===== */
+
+.confirm-reservation-btn {
+  margin-top: 0.8rem;
+}
+
+.reservation-summary {
+  margin-top: 1.3rem;
+  padding: 1.2rem 1.1rem 1.4rem;
+  border-radius: 18px;
+  background-color: #ffffff;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+.reservation-summary h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.summary-code {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.summary-code span {
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.reservation-summary ul {
+  list-style: none;
+  margin: 0.4rem 0 0.4rem;
+  padding: 0;
+}
+
+.reservation-summary li {
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.summary-note {
+  font-size: 0.85rem;
+  color: var(--color-text-soft);
+  margin-top: 0.4rem;
+}
+/* ===== PÁGINA MIS RESERVAS ===== */
+
+.my-reservations-page {
+  padding: 3rem 0 3.5rem;
+  background: linear-gradient(135deg, #fff7ed, #ffe7c5);
+}
+
+.my-reservations-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 2.3rem;
+}
+
+.my-res-eyebrow {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-primary-dark);
+  margin-bottom: 0.2rem;
+}
+
+.my-reservations-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+
+.my-reservations-header p {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+/* GRID */
+
+.my-reservations-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.3fr);
+  gap: 1.8rem;
+}
+
+.my-res-card {
+  background-color: #ffffff;
+  border-radius: 22px;
+  padding: 1.6rem 1.6rem 1.7rem;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+}
+
+.my-res-card h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0.7rem;
+}
+
+.my-res-search-form .form-group + .form-group {
+  margin-top: 0.7rem;
+}
+
+/* detalle */
+
+.my-res-detail-card {
+  min-height: 260px;
+}
+
+.my-res-empty {
+  font-size: 0.9rem;
+  color: var(--color-text-soft);
+}
+
+/* código + estado */
+
+.my-res-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.my-res-code {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.my-res-status-pill {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+}
+
+.status-activa {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-cancelada {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* resumen */
+
+.my-res-summary ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.my-res-summary li {
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+/* edición */
+
+.my-res-edit-form .form-group {
+  margin-top: 0.6rem;
+}
+
+.my-res-actions {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* responsive */
+
+@media (max-width: 900px) {
+  .my-reservations-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ==== PÁGINA DE AUTENTICACIÓN (LOGIN) ==== */
+
+.auth-page {
+  padding: 3rem 0 3.5rem;
+  background: linear-gradient(135deg, #fff7ed, #ffe7c5);
+  display: flex;
+  align-items: center;
+}
+
+.auth-card {
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 22px;
+  padding: 2rem 2rem 2.2rem;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.4rem;
+}
+
+.auth-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+  margin-bottom: 1.2rem;
+}
+
+.auth-form .form-group + .form-group {
+  margin-top: 0.8rem;
+}
+
+.auth-btn {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.auth-helper {
+  font-size: 0.85rem;
+  color: var(--color-text-soft);
+  margin-top: 1rem;
+}
+
+.auth-links {
+  margin-top: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  font-size: 0.9rem;
+}
+
+.auth-links a {
+  color: var(--color-primary-dark);
+  text-decoration: none;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+}
