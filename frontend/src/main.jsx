@@ -8,31 +8,32 @@ import Ubicacion from "./pages/ubicacion.jsx"; // Nueva página Ubicación
 import MisReservas from "./pages/mis-reservas.jsx";
 import Login from "./pages/login.jsx";
 import Principal from "./pages/principal.jsx";
-
-
+import Layout from "./components/Layout.jsx";
 
 import "./styles/global.css";
-import { MessagesContextProvider } from "./application-context/contexto-mensajes.jsx";
-import { AuthenticationProvider } from "./application-context/contexto-authenticacion.jsx";
+import { ProveedorMensajesContexto } from "./application-context/contexto-mensajes.jsx";
+import { AuthenticationProvider } from "./application-context/contexto-autenticacion.jsx";
 import { UserContextProvider } from "./application-context/contexto-usuario.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <MessagesContextProvider>
+    <ProveedorMensajesContexto>
       <AuthenticationProvider>
         <UserContextProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Principal />} />
-              <Route path="/reserva" element={<Reserva />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/ubicacion" element={<Ubicacion />} />
-              <Route path="/mis-reservas" element={<MisReservas />} />
-              <Route path="/login" element={<Login />} />
+              <Route element={<Layout />}>
+                <Route path="/" element={<Principal />} />
+                <Route path="/reserva" element={<Reserva />} />
+                <Route path="/menu" element={<Menu />} />
+                <Route path="/ubicacion" element={<Ubicacion />} />
+                <Route path="/mis-reservas" element={<MisReservas />} />
+                <Route path="/login" element={<Login />} />
+              </Route>
             </Routes>
           </BrowserRouter>
         </UserContextProvider>
       </AuthenticationProvider>
-    </MessagesContextProvider>
+    </ProveedorMensajesContexto>
   </React.StrictMode>
 );

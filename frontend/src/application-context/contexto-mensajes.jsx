@@ -2,12 +2,12 @@ import React, { createContext, useContext, useState } from "react";
 
 const MessagesContext = createContext();
 
-export function MessagesContextProvider( {children}){
+export function ProveedorMensajesContexto( {children}){
     const [mensajeError, setMensajeError] = useState("");
     const [mensajeExito, setMensajeExito] = useState("");
     const [mensajeCarga, setMensajeCarga] = useState("");
 
-    function resetMessages(){
+    function limpiaMensajes(){
         setMensajeError("");
         setMensajeExito("");
         setMensajeCarga("");
@@ -17,7 +17,7 @@ export function MessagesContextProvider( {children}){
         <MessagesContext.Provider value={{
             mensajeError, mensajeExito, mensajeCarga,
             setMensajeError, setMensajeExito, setMensajeCarga,
-            resetMessages,
+            limpiaMensajes,
         }}>
 
             {children}

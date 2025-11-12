@@ -1,57 +1,11 @@
-import { useContextoMensajes } from "../application-context/contexto-mensajes";
 import "../styles/global.css";
 import { Link } from "react-router-dom";
 
 export default function Principal() {
-  const {mensajeError, mensajeExito, mensajeCarga} = useContextoMensajes();
-
   return (
-    <div className="app-root">
-      {/* NAVBAR */}
-      <header className="navbar">
-        <div className="container navbar-inner">
-          <div className="navbar-logo">Dinely</div>
-          <nav className="navbar-links">
-            <Link to="/">Inicio</Link>
-            <Link to="/reserva">Reservar mesa</Link>
-            <Link to="/menu">Menú</Link>
-            <Link to="/ubicacion">Ubicación / Contacto</Link>
-            <Link to="/opiniones">Opiniones</Link>
-             <Link to="/mis-reservas">Mis reservas</Link>
-             <Link to="/login">Iniciar sesión</Link>
-          </nav>
-        </div>
-      </header>
-
-      <main>
-        {/* HERO */}
-        <div className="alert-container">
-          {mensajeError && 
-          <div className="alert alert-danger my-2 alert-positioning d-flex align-items-center" style={{whiteSpace: "pre-line"}} onClick={(e) => {e.stopPropagation();resetApplicationMessages();}}>
-              {mensajeError}
-              <button className="ms-auto btn btn-link link-no-decorations p-0">
-                  <h4 aria-hidden="true">&times;</h4>
-              </button>
-          </div>
-          }
-          {mensajeExito && 
-          <div className="alert alert-success my-2 alert-positioning d-flex align-items-center" style={{whiteSpace: "pre-line"}} onClick={(e) => {e.stopPropagation();resetApplicationMessages();}}>
-              {mensajeExito}
-              <button className="ms-auto btn btn-link link-no-decorations p-0">
-                  <h4 aria-hidden="true">&times;</h4>
-              </button>
-          </div>
-          }
-          {mensajeCarga && 
-          <div className="alert alert-secondary my-2 alert-positioning d-flex align-items-center" style={{whiteSpace: "pre-line"}} onClick={(e) => {e.stopPropagation();resetApplicationMessages();}}>
-              {mensajeCarga}
-              <button className="ms-auto btn btn-link link-no-decorations p-0">
-                  <h4 aria-hidden="true">&times;</h4>
-              </button>
-          </div>
-          }
-        </div>
-        <section id="inicio" className="hero">
+    <>
+      {/* HERO */}
+      <section id="inicio" className="hero">
           <div className="hero-overlay">
             <div className="container hero-content">
               <h1 className="hero-title">
@@ -185,15 +139,6 @@ export default function Principal() {
             </div>
           </div>
         </section>
-      </main>
-
-      {/* FOOTER */}
-      <footer className="footer">
-        <div className="container footer-inner">
-          <span>© {new Date().getFullYear()} Dinely · Sistema de reservas</span>
-          <span>Proyecto de Ingeniería de Software</span>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }

@@ -1,59 +1,59 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
-import { getCsrfToken, submitLogin, submitRegistration } from "../fetch/authentication";
+import { getCsrfToken, enviarLogin, submitRegistration } from "../fetch/authentication";
 import { useContextoMensajes } from "./contexto-mensajes";
 
-export const AuthenticationContext = createContext();
+export const ContextoAutenticacion = createContext();
 
-export function AuthenticationProvider({ children }) {
+export function ProveedorAutenticacion({ children }) {
 
-  const { resetMessages, setMensajeCarga, setMensajeError, setMensajeExito } = useContextoMensajes();
+  const { limpiaMensajes, setMensajeCarga, setMensajeError, setMensajeExito } = useContextoMensajes();
 
-  const [loading, setLoading] = useState(false);
+  const [cargando, setCargando] = useState(false);
 
-  async function login(loginInput, retrieveCurrentUser, navigate) {
-    if (loading) {
+  async function login(datosFormulario, navigate) {
+    if (cargando) {
       return;
     }
 
-    setLoading(true);
-    resetMessages();
+    setCargando(true);
+    limpiaMensajes();
     setMensajeCarga("Loading...");
 
-    const loginResponse = await submitLogin(loginInput);
+    const respuestaLogin = await enviarLogin(datosFormulario);
 
     setMensajeCarga("");
-    setLoading(false);
+    setCargando(false);
 
-    if (loginResponse.error) {
-      setMensajeError("Error logging in");
+    if (respuestaLogin.error) {
+      setMensajeError("Error ingresando");
       return;
     }
 
-    if (loginResponse.status == 400) {
-      setMensajeError("Invalid credentials");
+    if (respuestaLogin.status == 400) {
+      setMensajeError("Credenciales invalidas");
       return;
     }
 
-    if (loginResponse.status === 403) {
-      setMensajeError("Your account is not active");
+    if (respuestaLogin.status === 403) {
+      setMensajeError("Tu cuenta no esta activa");
       return;
     }
 
-    if (loginResponse.status === 200) {
+    if (respuestaLogin.status === 200) {
       setMensajeCarga("");
-      setLoading(false);
+      setCargando(false);
       navigate("/");
       return;
     }
   }
 
   async function register(registerInput, setEmailInvalid, setPasswordInvalid) {
-    if (loading) {
+    if (cargando) {
       return;
     }
 
-    setLoading(true);
-    resetMessages();
+    setCargando(true);
+    limpiaMensajes();
     setEmailInvalid(false);
     setPasswordInvalid(false);
     setMensajeCarga("Loading...");
@@ -62,7 +62,7 @@ export function AuthenticationProvider({ children }) {
 
     if (registerResponse.error) {
       setMensajeError("An error ocurred while submiting the account");
-      setLoading(false);
+      setCargando(false);
       setMensajeCarga("");
       return;
     }
@@ -88,20 +88,20 @@ export function AuthenticationProvider({ children }) {
         setPasswordInvalid(true);
       }
       setMensajeError(message);
-      setLoading(false);
+      setCargando(false);
       setMensajeCarga("");
       return;
     }
 
     if (registerResponse.status === 200) {
       setMensajeExito("Account created, check your email to finalize the creation");
-      setLoading(false);
+      setCargando(false);
       setMensajeCarga("");
       return;
     }
 
     setMensajeError("There was an error while submiting the account information");
-    setLoading(false);
+    setCargando(false);
     setMensajeCarga("");
     return;
   }
@@ -114,7 +114,7 @@ export function AuthenticationProvider({ children }) {
   }, []);
 
   return (
-    <AuthenticationContext.Provider value={{ login, register, loading }}>
+    <AuthenticationContext.Provider value={{ login, register, cargando }}>
       {children}
     </AuthenticationContext.Provider>
   );

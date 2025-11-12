@@ -3,9 +3,7 @@ import "../styles/global.css";
 
 export default function Ubicacion() {
   return (
-    <div className="app-root">
-      <main>
-        <section className="location-page">
+    <section className="location-page">
           <div className="container">
             {/* ENCABEZADO */}
             <header className="location-header">
@@ -113,16 +111,14 @@ export default function Ubicacion() {
                 </div>
               </section>
             </div>
+
+            {/* BOTÓN VOLVER AL INICIO */}
+            <div className="back-home-container">
+              <Link to="/" className="btn-back-home">
+                ← Volver al inicio
+              </Link>
+            </div>
           </div>
         </section>
-
-        {/* BOTÓN VOLVER AL INICIO */}
-        <div className="back-home-container">
-          <Link to="/" className="btn-back-home">
-            ← Volver al inicio
-          </Link>
-        </div>
-      </main>
-    </div>
   );
 }

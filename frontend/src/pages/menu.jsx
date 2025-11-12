@@ -8,9 +8,7 @@ import limonadaImg from "../assets/menu/limonada.jpg";
 
 export default function Menu() {
   return (
-    <div className="app-root">
-      <main>
-        <section className="menu-page">
+    <section className="menu-page">
           <div className="container">
             {/* ENCABEZADO GENERAL */}
             <header className="menu-header">
@@ -112,16 +110,14 @@ export default function Menu() {
                 />
               </div>
             </section>
+
+            {/* BOTÓN VOLVER AL INICIO */}
+            <div className="back-home-container">
+              <Link to="/" className="btn-back-home">
+                ← Volver al inicio
+              </Link>
+            </div>
           </div>
         </section>
-
-        {/* BOTÓN VOLVER AL INICIO */}
-        <div className="back-home-container">
-          <Link to="/" className="btn-back-home">
-            ← Volver al inicio
-          </Link>
-        </div>
-      </main>
-    </div>
   );
 }

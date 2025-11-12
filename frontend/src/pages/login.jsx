@@ -5,7 +5,7 @@ import "../styles/global.css";
 export default function Login() {
   const [datosFormulario, setDatosFormulario] = useState({
     correo: "",
-    password: "",
+    contrasena: "",
   });
 
   const handleCambio = (e) => {
@@ -24,9 +24,7 @@ export default function Login() {
   };
 
   return (
-    <div className="app-root">
-      <main>
-        <section className="auth-page">
+    <section className="auth-page">
           <div className="container">
             <div className="auth-card">
               <h1>Iniciar sesión</h1>
@@ -49,13 +47,13 @@ export default function Login() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="passwordLogin">Contraseña</label>
+                  <label htmlFor="contrasenaLogin">Contraseña</label>
                   <input
-                    id="passwordLogin"
-                    name="password"
+                    id="contrasenaLogin"
+                    name="contrasena"
                     type="password"
                     placeholder="••••••••"
-                    value={datosFormulario.password}
+                    value={datosFormulario.contrasena}
                     onChange={handleCambio}
                     required
                   />
@@ -76,16 +74,14 @@ export default function Login() {
                 <Link to="/">Volver al inicio</Link>
               </div>
             </div>
+
+            {/* Botón inferior opcional */}
+            <div className="back-home-container">
+              <Link to="/" className="btn-back-home">
+                ← Volver al inicio
+              </Link>
+            </div>
           </div>
         </section>
-
-        {/* Botón inferior opcional */}
-        <div className="back-home-container">
-          <Link to="/" className="btn-back-home">
-            ← Volver al inicio
-          </Link>
-        </div>
-      </main>
-    </div>
   );
 }

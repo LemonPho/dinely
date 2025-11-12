@@ -80,9 +80,7 @@ export default function MisReservas() {
   };
 
   return (
-    <div className="app-root">
-      <main>
-        <section className="my-reservations-page">
+    <section className="my-reservations-page">
           <div className="container">
             {/* ENCABEZADO */}
             <header className="my-reservations-header">
@@ -182,17 +180,17 @@ export default function MisReservas() {
                         <div className="form-row">
                           <div className="form-group">
                             <label htmlFor="fechaEdit">Fecha</label>
-                            <input id="fechaEdit" name="fecha" type="date" value={datosEdicion.fecha} onChange={handleEditChange} required/>
+                            <input id="fechaEdit" name="fecha" type="date" value={datosEdicion.fecha} onChange={handleCambioEdicion} required/>
                           </div>
 
                           <div className="form-group">
                             <label htmlFor="horaEdit">Hora</label>
-                            <input id="horaEdit" name="hora" type="time" value={datosEdicion.hora} onChange={handleEditChange} required/>
+                            <input id="horaEdit" name="hora" type="time" value={datosEdicion.hora} onChange={handleCambioEdicion} required/>
                           </div>
 
                           <div className="form-group">
                             <label htmlFor="personasEdit">Personas</label>
-                            <select id="personasEdit" name="personas" value={datosEdicion.personas} onChange={handleEditChange}>
+                            <select id="personasEdit" name="personas" value={datosEdicion.personas} onChange={handleCambioEdicion}>
                               <option value="1">1</option>
                               <option value="2">2</option>
                               <option value="3">3</option>
@@ -208,7 +206,7 @@ export default function MisReservas() {
                         <div className="form-row">
                           <div className="form-group">
                             <label htmlFor="zonaEdit">Zona</label>
-                            <select id="zonaEdit" name="zona" value={datosEdicion.zona} onChange={handleEditChange}>
+                            <select id="zonaEdit" name="zona" value={datosEdicion.zona} onChange={handleCambioEdicion}>
                               <option value="interior">Interior</option>
                               <option value="terraza">Terraza</option>
                               <option value="barra">Barra</option>
@@ -221,7 +219,7 @@ export default function MisReservas() {
                             <label htmlFor="comentariosEdit">
                               Comentarios / peticiones
                             </label>
-                            <textarea id="comentariosEdit" name="comentarios" rows="3" value={datosEdicion.comentarios} onChange={handleEditChange}/>
+                            <textarea id="comentariosEdit" name="comentarios" rows="3" value={datosEdicion.comentarios} onChange={handleCambioEdicion}/>
                           </div>
                         </div>
 
@@ -260,16 +258,14 @@ export default function MisReservas() {
                 )}
               </section>
             </div>
+
+            {/* BOTÓN VOLVER AL INICIO */}
+            <div className="back-home-container">
+              <Link to="/" className="btn-back-home">
+                ← Volver al inicio
+              </Link>
+            </div>
           </div>
         </section>
-
-        {/* BOTÓN VOLVER AL INICIO */}
-        <div className="back-home-container">
-          <Link to="/" className="btn-back-home">
-            ← Volver al inicio
-          </Link>
-        </div>
-      </main>
-    </div>
   );
 }

@@ -1,4 +1,4 @@
-export function getCookie(name) {
+export function obtenerCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';');
@@ -14,14 +14,14 @@ export function getCookie(name) {
   return cookieValue;
 }
 
-export async function submitLogin(loginInput) {
+export async function enviarLogin(datosFormulario) {
   let response = {
     error: false,
     status: 0,
   }
 
   try {
-    const csrftoken = getCookie("csrftoken");
+    const csrftoken = obtenerCookie("csrftoken");
 
     const apiResponse = await fetch(`/api/authentication/login/`, {
       method: "POST",
@@ -31,8 +31,8 @@ export async function submitLogin(loginInput) {
         "Content-type": "application/json",
       },
       body: JSON.stringify({
-        email: loginInput.primaryKey,
-        password: loginInput.password,
+        email: datosFormulario.correo,
+        password: datosFormulario.contrasena,
       }),
     });
 
@@ -104,7 +104,7 @@ export async function submitRegistration(registerInput) {
   }
 
   try {
-    const csrftoken = getCookie("csrftoken");
+    const csrftoken = obtenerCookie("csrftoken");
     const apiResponse = await fetch(`/api/authentication/register/`, {
       method: "POST",
       headers: {
