@@ -45,7 +45,7 @@ export default function Reserva() {
 
   const handleCambio = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setDatosFormulario((prev) => ({
       ...prev,
       [name]: value,
     }));

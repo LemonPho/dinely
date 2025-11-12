@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useUserContext } from "../application-context/contexto-usuario";
-import { useAuthenticationContext } from "../application-context/contexto-aplicacion";
+import { useAuthenticationContext } from "../application-context/contexto-authenticacion";
 import TextInput from "./util-components/TextInput";
 
 import '../static/card.css'
