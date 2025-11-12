@@ -119,9 +119,7 @@ export default function Reserva() {
   };
 
   return (
-    <div className="app-root">
-      <main>
-        <section className="reservation-page">
+    <section className="reservation-page">
           <div className="container">
             {/* ENCABEZADO */}
             <div className="reservation-header">
@@ -555,16 +553,14 @@ export default function Reserva() {
                 </p>
               </aside>
             </div>
-          </div>
-        </section>
 
-        {/* BOTÓN VOLVER AL INICIO */}
-        <div className="back-home-container">
-          <Link to="/" className="btn-back-home">
-            ← Volver al inicio
-          </Link>
-        </div>
-      </main>
-    </div>
+            {/* BOTÓN VOLVER AL INICIO */}
+            <div className="back-home-container">
+              <Link to="/" className="btn-back-home">
+                ← Volver al inicio
+              </Link>
+            </div>
+          </div>
+    </section>
   );
 }

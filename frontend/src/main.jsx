@@ -2,13 +2,13 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Reserva from "./pages/reserva.jsx";
-import Menu from "./pages/menu.jsx";        // Página de Menú
-import Ubicacion from "./pages/ubicacion.jsx"; // Nueva página Ubicación
-import MisReservas from "./pages/mis-reservas.jsx";
-import Login from "./pages/login.jsx";
-import Principal from "./pages/principal.jsx";
-import Layout from "./components/Layout.jsx";
+import Reserva from "./components/reserva.jsx";
+import Menu from "./components/menu.jsx";        // Página de Menú
+import Ubicacion from "./components/ubicacion.jsx"; // Nueva página Ubicación
+import MisReservas from "./components/mis-reservas.jsx";
+import Login from "./components/login.jsx";
+import Principal from "./components/principal.jsx";
+import Layout from "./components/layout.jsx";
 
 import "./styles/global.css";
 import { ProveedorMensajesContexto } from "./application-context/contexto-mensajes.jsx";
