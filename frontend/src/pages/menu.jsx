@@ -6,7 +6,7 @@ import guacamoleImg from "../assets/menu/guacamole.jpg";
 import polloImg from "../assets/menu/pollo.jpg";
 import limonadaImg from "../assets/menu/limonada.jpg";
 
-function Menu() {
+export default function Menu() {
   return (
     <div className="app-root">
       <main>
@@ -125,5 +125,3 @@ function Menu() {
     </div>
   );
 }
-
-export default Menu;

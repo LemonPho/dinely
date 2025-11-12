@@ -2,19 +2,18 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/global.css";
 
-function MisReservas() {
+export default function MisReservas() {
   const [busqueda, setBusqueda] = useState({
     codigo: "",
     correo: "",
   });
 
   const [reserva, setReserva] = useState(null);        // reserva cargada
-  const [editData, setEditData] = useState(null);      // copia editable
+  const [datosEdicion, setDatosEdicion] = useState(null);      // copia editable
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [mensaje, setMensaje] = useState("");
   const [estadoReserva, setEstadoReserva] = useState(null); // "activa" | "cancelada"
 
-  const handleBusquedaChange = (e) => {
+  const handleCambioBusqueda = (e) => {
     const { name, value } = e.target;
     setBusqueda((prev) => ({
       ...prev,
@@ -43,15 +42,14 @@ function MisReservas() {
     };
 
     setReserva(reservaSimulada);
-    setEditData(reservaSimulada);
+    setDatosEdicion(reservaSimulada);
     setEstadoReserva("activa");
     setModoEdicion(false);
-    setMensaje("Reserva encontrada. Puedes modificarla o cancelarla.");
   };
 
-  const handleEditChange = (e) => {
+  const handleCambioEdicion = (e) => {
     const { name, value } = e.target;
-    setEditData((prev) => ({
+    setDatosEdicion((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -64,13 +62,10 @@ function MisReservas() {
     if (!seguro) return;
 
     // ⚠️ AQUÍ IRÍA UN PUT/PATCH AL BACKEND
-    // Ejemplo: fetch(`/api/reservas/${reserva.codigo}`, { method: "PUT", body: JSON.stringify(editData) })
+    // Ejemplo: fetch(`/api/reservas/${reserva.codigo}`, { method: "PUT", body: JSON.stringify(datosEdicion) })
 
-    setReserva(editData);
+    setReserva(datosEdicion);
     setModoEdicion(false);
-    setMensaje(
-      "Tu reserva ha sido actualizada. Cuando el sistema esté conectado al backend, los cambios se guardarán definitivamente."
-    );
   };
 
   const handleCancelarReserva = () => {
@@ -82,9 +77,6 @@ function MisReservas() {
     // ⚠️ AQUÍ IRÍA UN DELETE / POST cancelación AL BACKEND
 
     setEstadoReserva("cancelada");
-    setMensaje(
-      "Tu reserva ha sido marcada como cancelada. Cuando el sistema esté conectado al backend, se reflejará en el sistema."
-    );
   };
 
   return (
@@ -110,40 +102,18 @@ function MisReservas() {
                 <form onSubmit={handleBuscarReserva} className="my-res-search-form">
                   <div className="form-group">
                     <label htmlFor="codigo">Código de reserva</label>
-                    <input
-                      id="codigo"
-                      name="codigo"
-                      type="text"
-                      placeholder="Ej. DIN-ABC123"
-                      value={busqueda.codigo}
-                      onChange={handleBusquedaChange}
-                      required
-                    />
+                    <input id="codigo" name="codigo" type="text" placeholder="Ej. DIN-ABC123" value={busqueda.codigo} onChange={handleCambioBusqueda} required/>
                   </div>
 
                   <div className="form-group">
                     <label htmlFor="correoBusqueda">Correo electrónico</label>
-                    <input
-                      id="correoBusqueda"
-                      name="correo"
-                      type="email"
-                      placeholder="tucorreo@ejemplo.com"
-                      value={busqueda.correo}
-                      onChange={handleBusquedaChange}
-                      required
-                    />
+                    <input id="correoBusqueda" name="correo" type="email" placeholder="tucorreo@ejemplo.com" value={busqueda.correo} onChange={handleCambioBusqueda} required/>
                   </div>
 
                   <button type="submit" className="btn-primary">
                     Buscar reserva
                   </button>
                 </form>
-
-                {mensaje && (
-                  <p className="reservation-message" style={{ marginTop: "0.8rem" }}>
-                    {mensaje}
-                  </p>
-                )}
               </section>
 
               {/* TARJETA DE DETALLE / EDICIÓN */}
@@ -163,13 +133,7 @@ function MisReservas() {
                     <div className="my-res-status-row">
                       <span className="my-res-code">{reserva.codigo}</span>
                       <span
-                        className={[
-                          "my-res-status-pill",
-                          estadoReserva === "cancelada"
-                            ? "status-cancelada"
-                            : "status-activa",
-                        ].join(" ")}
-                      >
+                        className={["my-res-status-pill", estadoReserva === "cancelada" ? "status-cancelada" : "status-activa",].join(" ")}>
                         {estadoReserva === "cancelada" ? "Cancelada" : "Activa"}
                       </span>
                     </div>
@@ -213,47 +177,22 @@ function MisReservas() {
                       </div>
                     )}
 
-                    {modoEdicion && editData && (
-                      <form
-                        className="my-res-edit-form"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleGuardarCambios();
-                        }}
-                      >
+                    {modoEdicion && datosEdicion && (
+                      <form className="my-res-edit-form" onSubmit={(e) => {e.preventDefault(); handleGuardarCambios(); }}>
                         <div className="form-row">
                           <div className="form-group">
                             <label htmlFor="fechaEdit">Fecha</label>
-                            <input
-                              id="fechaEdit"
-                              name="fecha"
-                              type="date"
-                              value={editData.fecha}
-                              onChange={handleEditChange}
-                              required
-                            />
+                            <input id="fechaEdit" name="fecha" type="date" value={datosEdicion.fecha} onChange={handleEditChange} required/>
                           </div>
 
                           <div className="form-group">
                             <label htmlFor="horaEdit">Hora</label>
-                            <input
-                              id="horaEdit"
-                              name="hora"
-                              type="time"
-                              value={editData.hora}
-                              onChange={handleEditChange}
-                              required
-                            />
+                            <input id="horaEdit" name="hora" type="time" value={datosEdicion.hora} onChange={handleEditChange} required/>
                           </div>
 
                           <div className="form-group">
                             <label htmlFor="personasEdit">Personas</label>
-                            <select
-                              id="personasEdit"
-                              name="personas"
-                              value={editData.personas}
-                              onChange={handleEditChange}
-                            >
+                            <select id="personasEdit" name="personas" value={datosEdicion.personas} onChange={handleEditChange}>
                               <option value="1">1</option>
                               <option value="2">2</option>
                               <option value="3">3</option>
@@ -269,12 +208,7 @@ function MisReservas() {
                         <div className="form-row">
                           <div className="form-group">
                             <label htmlFor="zonaEdit">Zona</label>
-                            <select
-                              id="zonaEdit"
-                              name="zona"
-                              value={editData.zona}
-                              onChange={handleEditChange}
-                            >
+                            <select id="zonaEdit" name="zona" value={datosEdicion.zona} onChange={handleEditChange}>
                               <option value="interior">Interior</option>
                               <option value="terraza">Terraza</option>
                               <option value="barra">Barra</option>
@@ -287,13 +221,7 @@ function MisReservas() {
                             <label htmlFor="comentariosEdit">
                               Comentarios / peticiones
                             </label>
-                            <textarea
-                              id="comentariosEdit"
-                              name="comentarios"
-                              rows="3"
-                              value={editData.comentarios}
-                              onChange={handleEditChange}
-                            />
+                            <textarea id="comentariosEdit" name="comentarios" rows="3" value={datosEdicion.comentarios} onChange={handleEditChange}/>
                           </div>
                         </div>
 
@@ -301,14 +229,7 @@ function MisReservas() {
                           <button type="submit" className="btn-primary">
                             Guardar cambios
                           </button>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => {
-                              setModoEdicion(false);
-                              setEditData(reserva);
-                            }}
-                          >
+                          <button type="button" className="btn-secondary" onClick={() => {setModoEdicion(false);setDatosEdicion(reserva);}}>
                             Cancelar edición
                           </button>
                         </div>
@@ -320,23 +241,10 @@ function MisReservas() {
                       <div className="my-res-actions">
                         {estadoReserva === "activa" && (
                           <>
-                            <button
-                              type="button"
-                              className="btn-primary"
-                              onClick={() => {
-                                setModoEdicion(true);
-                                setMensaje(
-                                  "Estás editando los datos de tu reserva. Recuerda guardar los cambios."
-                                );
-                              }}
-                            >
+                            <button type="button" className="btn-primary" onClick={() => {setModoEdicion(true);}}>
                               Modificar reserva
                             </button>
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              onClick={handleCancelarReserva}
-                            >
+                            <button type="button" className="btn-secondary" onClick={handleCancelarReserva}>
                               Cancelar reserva
                             </button>
                           </>
@@ -365,5 +273,3 @@ function MisReservas() {
     </div>
   );
 }
-
-export default MisReservas;

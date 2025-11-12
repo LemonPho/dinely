@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import "../styles/global.css";
 
-function Ubicacion() {
+export default function Ubicacion() {
   return (
     <div className="app-root">
       <main>
@@ -126,5 +126,3 @@ function Ubicacion() {
     </div>
   );
 }
-
-export default Ubicacion;

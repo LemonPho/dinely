@@ -2,32 +2,25 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/global.css";
 
-function Login() {
-  const [formData, setFormData] = useState({
+export default function Login() {
+  const [datosFormulario, setDatosFormulario] = useState({
     correo: "",
     password: "",
   });
 
-  const [mensaje, setMensaje] = useState("");
-
-  const handleChange = (e) => {
+  const handleCambio = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setDatosFormulario((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleEnviar = (e) => {
     e.preventDefault();
 
     // 🔌 AQUÍ LUEGO VA EL BACKEND
-    // Ejemplo futuro:
-    // fetch("/api/login", { method: "POST", body: JSON.stringify(formData) })
-
-    setMensaje(
-      "Simulación de inicio de sesión: cuando el backend esté listo, aquí se validarán tus datos y se cargará tu perfil."
-    );
+    // hay una funcion en /fetch que tiene para hacer login
   };
 
   return (
@@ -41,7 +34,7 @@ function Login() {
                 Accede para ver y administrar tus reservas guardadas en Dinely.
               </p>
 
-              <form className="auth-form" onSubmit={handleSubmit}>
+              <form className="auth-form" onSubmit={handleEnviar}>
                 <div className="form-group">
                   <label htmlFor="correoLogin">Correo electrónico</label>
                   <input
@@ -49,8 +42,8 @@ function Login() {
                     name="correo"
                     type="email"
                     placeholder="tucorreo@ejemplo.com"
-                    value={formData.correo}
-                    onChange={handleChange}
+                    value={datosFormulario.correo}
+                    onChange={handleCambio}
                     required
                   />
                 </div>
@@ -62,8 +55,8 @@ function Login() {
                     name="password"
                     type="password"
                     placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
+                    value={datosFormulario.password}
+                    onChange={handleCambio}
                     required
                   />
                 </div>
@@ -72,12 +65,6 @@ function Login() {
                   Iniciar sesión
                 </button>
               </form>
-
-              {mensaje && (
-                <p className="reservation-message" style={{ marginTop: "0.8rem" }}>
-                  {mensaje}
-                </p>
-              )}
 
               <p className="auth-helper">
                 Más adelante podrás crear una cuenta nueva desde aquí o iniciar
@@ -102,5 +89,3 @@ function Login() {
     </div>
   );
 }
-
-export default Login;

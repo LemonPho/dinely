@@ -1,14 +1,9 @@
+import { useContextoMensajes } from "../application-context/contexto-mensajes";
 import "../styles/global.css";
 import { Link } from "react-router-dom";
 
-
-
-
-function App() {
-  const scrollToSection = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  };
+export default function Principal() {
+  const {mensajeError, mensajeExito, mensajeCarga} = useContextoMensajes();
 
   return (
     <div className="app-root">
@@ -30,6 +25,32 @@ function App() {
 
       <main>
         {/* HERO */}
+        <div className="alert-container">
+          {mensajeError && 
+          <div className="alert alert-danger my-2 alert-positioning d-flex align-items-center" style={{whiteSpace: "pre-line"}} onClick={(e) => {e.stopPropagation();resetApplicationMessages();}}>
+              {mensajeError}
+              <button className="ms-auto btn btn-link link-no-decorations p-0">
+                  <h4 aria-hidden="true">&times;</h4>
+              </button>
+          </div>
+          }
+          {mensajeExito && 
+          <div className="alert alert-success my-2 alert-positioning d-flex align-items-center" style={{whiteSpace: "pre-line"}} onClick={(e) => {e.stopPropagation();resetApplicationMessages();}}>
+              {mensajeExito}
+              <button className="ms-auto btn btn-link link-no-decorations p-0">
+                  <h4 aria-hidden="true">&times;</h4>
+              </button>
+          </div>
+          }
+          {mensajeCarga && 
+          <div className="alert alert-secondary my-2 alert-positioning d-flex align-items-center" style={{whiteSpace: "pre-line"}} onClick={(e) => {e.stopPropagation();resetApplicationMessages();}}>
+              {mensajeCarga}
+              <button className="ms-auto btn btn-link link-no-decorations p-0">
+                  <h4 aria-hidden="true">&times;</h4>
+              </button>
+          </div>
+          }
+        </div>
         <section id="inicio" className="hero">
           <div className="hero-overlay">
             <div className="container hero-content">
@@ -176,5 +197,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

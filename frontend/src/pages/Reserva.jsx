@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-function Reserva() {
-  const [formData, setFormData] = useState({
+export default function Reserva() {
+  const [datosFormulario, setDatosFormulario] = useState({
     nombre: "",
     correo: "",
     telefono: "",
@@ -43,7 +43,7 @@ function Reserva() {
     ],
   };
 
-  const handleChange = (e) => {
+  const handleCambio = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -51,7 +51,7 @@ function Reserva() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleEnviar = (e) => {
     e.preventDefault();
 
     // Cada vez que se busca disponibilidad, limpiamos el resumen previo
@@ -85,8 +85,8 @@ function Reserva() {
     let mensajeBase;
     if (hayDisponibles) {
       mensajeBase = `Estos son los horarios disponibles para tu visita de ${
-        formData.personas
-      } persona(s) el día ${formData.fecha || "(fecha por definir)"}:`;
+        datosFormulario.personas
+      } persona(s) el día ${datosFormulario.fecha || "(fecha por definir)"}:`;
     } else {
       mensajeBase =
         "No encontramos horarios disponibles para la fecha seleccionada. Prueba con otro horario o día.";
@@ -107,13 +107,13 @@ function Reserva() {
 
     setResumenReserva({
       codigo,
-      nombre: formData.nombre,
-      correo: formData.correo,
-      telefono: formData.telefono,
-      fecha: formData.fecha,
+      nombre: datosFormulario.nombre,
+      correo: datosFormulario.correo,
+      telefono: datosFormulario.telefono,
+      fecha: datosFormulario.fecha,
       hora: selectedSlot,
-      personas: formData.personas,
-      zona: formData.zona,
+      personas: datosFormulario.personas,
+      zona: datosFormulario.zona,
       platillo: platoSeleccionado || null,
     });
   };
@@ -139,7 +139,7 @@ function Reserva() {
               <div className="reservation-card">
                 <h2>Datos de tu reserva</h2>
 
-                <form className="reservation-form" onSubmit={handleSubmit}>
+                <form className="reservation-form" onSubmit={handleEnviar}>
                   {/* Nombre y correo */}
                   <div className="form-row">
                     <div className="form-group">
@@ -148,8 +148,8 @@ function Reserva() {
                         type="text"
                         id="nombre"
                         name="nombre"
-                        value={formData.nombre}
-                        onChange={handleChange}
+                        value={datosFormulario.nombre}
+                        onChange={handleCambio}
                         placeholder="Ej. Ana López"
                         required
                       />
@@ -161,8 +161,8 @@ function Reserva() {
                         type="email"
                         id="correo"
                         name="correo"
-                        value={formData.correo}
-                        onChange={handleChange}
+                        value={datosFormulario.correo}
+                        onChange={handleCambio}
                         placeholder="tucorreo@ejemplo.com"
                         required
                       />
@@ -177,8 +177,8 @@ function Reserva() {
                         type="tel"
                         id="telefono"
                         name="telefono"
-                        value={formData.telefono}
-                        onChange={handleChange}
+                        value={datosFormulario.telefono}
+                        onChange={handleCambio}
                         placeholder="Ej. 55 1234 5678"
                       />
                     </div>
@@ -192,8 +192,8 @@ function Reserva() {
                         type="date"
                         id="fecha"
                         name="fecha"
-                        value={formData.fecha}
-                        onChange={handleChange}
+                        value={datosFormulario.fecha}
+                        onChange={handleCambio}
                         required
                       />
                     </div>
@@ -204,8 +204,8 @@ function Reserva() {
                         type="time"
                         id="hora"
                         name="hora"
-                        value={formData.hora}
-                        onChange={handleChange}
+                        value={datosFormulario.hora}
+                        onChange={handleCambio}
                         required
                       />
                     </div>
@@ -215,8 +215,8 @@ function Reserva() {
                       <select
                         id="personas"
                         name="personas"
-                        value={formData.personas}
-                        onChange={handleChange}
+                        value={datosFormulario.personas}
+                        onChange={handleCambio}
                       >
                         <option value="1">1 persona</option>
                         <option value="2">2 personas</option>
@@ -240,8 +240,8 @@ function Reserva() {
                             type="radio"
                             name="zona"
                             value="interior"
-                            checked={formData.zona === "interior"}
-                            onChange={handleChange}
+                            checked={datosFormulario.zona === "interior"}
+                            onChange={handleCambio}
                           />
                           Interior
                         </label>
@@ -250,8 +250,8 @@ function Reserva() {
                             type="radio"
                             name="zona"
                             value="terraza"
-                            checked={formData.zona === "terraza"}
-                            onChange={handleChange}
+                            checked={datosFormulario.zona === "terraza"}
+                            onChange={handleCambio}
                           />
                           Terraza
                         </label>
@@ -260,8 +260,8 @@ function Reserva() {
                             type="radio"
                             name="zona"
                             value="barra"
-                            checked={formData.zona === "barra"}
-                            onChange={handleChange}
+                            checked={datosFormulario.zona === "barra"}
+                            onChange={handleCambio}
                           />
                           Barra
                         </label>
@@ -278,8 +278,8 @@ function Reserva() {
                       <textarea
                         id="comentarios"
                         name="comentarios"
-                        value={formData.comentarios}
-                        onChange={handleChange}
+                        value={datosFormulario.comentarios}
+                        onChange={handleCambio}
                         rows="3"
                         placeholder="Ej. Cumpleaños, alergias, silla para bebé..."
                       />
@@ -568,5 +568,3 @@ function Reserva() {
     </div>
   );
 }
-
-export default Reserva;

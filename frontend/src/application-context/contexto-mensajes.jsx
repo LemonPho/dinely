@@ -3,20 +3,20 @@ import React, { createContext, useContext, useState } from "react";
 const MessagesContext = createContext();
 
 export function MessagesContextProvider( {children}){
-    const [errorMessage, setErrorMessage] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
-    const [loadingMessage, setLoadingMessage] = useState("");
+    const [mensajeError, setMensajeError] = useState("");
+    const [mensajeExito, setMensajeExito] = useState("");
+    const [mensajeCarga, setMensajeCarga] = useState("");
 
     function resetMessages(){
-        setErrorMessage("");
-        setSuccessMessage("");
-        setLoadingMessage("");
+        setMensajeError("");
+        setMensajeExito("");
+        setMensajeCarga("");
     }
 
     return(
         <MessagesContext.Provider value={{
-            errorMessage, successMessage, loadingMessage,
-            setErrorMessage, setSuccessMessage, setLoadingMessage,
+            mensajeError, mensajeExito, mensajeCarga,
+            setMensajeError, setMensajeExito, setMensajeCarga,
             resetMessages,
         }}>
 
@@ -26,7 +26,7 @@ export function MessagesContextProvider( {children}){
     )
 }
 
-export function useMessagesContext(){
+export function useContextoMensajes(){
     const context = useContext(MessagesContext);
     if (!context){
         throw new Error("useUserContext must be within a UserContextProvider")
