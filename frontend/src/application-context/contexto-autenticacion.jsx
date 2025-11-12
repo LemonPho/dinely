@@ -2,9 +2,9 @@ import React, { createContext, useEffect, useState, useContext } from "react";
 import { getCsrfToken, enviarLogin, submitRegistration } from "../fetch/authentication";
 import { useContextoMensajes } from "./contexto-mensajes";
 
-export const ContextoAutenticacion = createContext();
+export const AuthenticationContext = createContext();
 
-export function ProveedorAutenticacion({ children }) {
+export function AuthenticationProvider({ children }) {
 
   const { limpiaMensajes, setMensajeCarga, setMensajeError, setMensajeExito } = useContextoMensajes();
 
