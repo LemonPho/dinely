@@ -16,6 +16,11 @@ import AdminPlates from "./components-admin/admin-plates.jsx";
 import AdminUsers from "./components-admin/admin-users.jsx";
 import AdminReservations from "./components-admin/admin-reservations.jsx";
 import AdminAccounts from "./components-admin/admin-accounts.jsx";
+import EmployeeLayout from "./components-employee/employee-layout.jsx";
+import EmployeeDashboard from "./components-employee/employee-dashboard.jsx";
+import EmployeeAccount from "./components-employee/employee-account.jsx";
+import EmployeeTables from "./components-employee/employee-tables.jsx";
+import EmployeeKitchen from "./components-employee/employee-kitchen.jsx";
 
 // Admin navigation configuration
 export const adminNavItems = [
@@ -25,6 +30,13 @@ export const adminNavItems = [
   { path: "/admin/users", label: "Usuarios" },
   { path: "/admin/reservations", label: "Reservaciones" },
   { path: "/admin/accounts", label: "Cuentas" },
+];
+
+// Employee navigation configuration
+export const employeeNavItems = [
+  { path: "/empleado", label: "Panel" },
+  { path: "/empleado/mesas", label: "Mesas Disponibles" },
+  { path: "/empleado/cocina", label: "Cocina" },
 ];
 
 import "./styles/global.css";
@@ -56,6 +68,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/reservations" element={<AdminReservations />} />
                   <Route path="/admin/accounts" element={<AdminAccounts />} />
+                </Route>
+                <Route path="/empleado" element={<EmployeeLayout />}>
+                  <Route path="/empleado" element={<EmployeeDashboard />} />
+                  <Route path="/empleado/mesas" element={<EmployeeTables />} />
+                  <Route path="/empleado/cocina" element={<EmployeeKitchen />} />
+                  <Route path="/empleado/cuenta/:id" element={<EmployeeAccount />} />
                 </Route>
               </Routes>
             </BrowserRouter>

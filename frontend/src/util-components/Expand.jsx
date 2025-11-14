@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import "../../static/util.css"
+import "../styles/util.css"
 
 export default function Expand({ children, expanded, id, className, maxHeight }){
     const divRef = useRef(null);
