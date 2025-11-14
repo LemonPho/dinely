@@ -3,20 +3,20 @@ import { Link } from "react-router-dom";
 import "../styles/global.css";
 
 export default function Login() {
-  const [datosFormulario, setDatosFormulario] = useState({
-    correo: "",
-    contrasena: "",
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
   });
 
-  const handleCambio = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setDatosFormulario((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleEnviar = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     // 🔌 AQUÍ LUEGO VA EL BACKEND
@@ -32,29 +32,29 @@ export default function Login() {
                 Accede para ver y administrar tus reservas guardadas en Dinely.
               </p>
 
-              <form className="auth-form" onSubmit={handleEnviar}>
+              <form className="auth-form" onSubmit={handleSubmit}>
                 <div className="form-group">
-                  <label htmlFor="correoLogin">Correo electrónico</label>
+                  <label htmlFor="emailLogin">Correo electrónico</label>
                   <input
-                    id="correoLogin"
-                    name="correo"
+                    id="emailLogin"
+                    name="email"
                     type="email"
-                    placeholder="tucorreo@ejemplo.com"
-                    value={datosFormulario.correo}
-                    onChange={handleCambio}
+                    placeholder="tuemail@ejemplo.com"
+                    value={formData.email}
+                    onChange={handleChange}
                     required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="contrasenaLogin">Contraseña</label>
+                  <label htmlFor="passwordLogin">Contraseña</label>
                   <input
-                    id="contrasenaLogin"
-                    name="contrasena"
+                    id="passwordLogin"
+                    name="password"
                     type="password"
                     placeholder="••••••••"
-                    value={datosFormulario.contrasena}
-                    onChange={handleCambio}
+                    value={formData.password}
+                    onChange={handleChange}
                     required
                   />
                 </div>

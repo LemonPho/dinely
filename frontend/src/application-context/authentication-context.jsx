@@ -1,69 +1,69 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
 import { getCsrfToken, enviarLogin, submitRegistration } from "../fetch/authentication";
-import { useContextoMensajes } from "./contexto-mensajes";
+import { useMessagesContext } from "./messages-context";
 
 export const AuthenticationContext = createContext();
 
 export function AuthenticationProvider({ children }) {
 
-  const { limpiaMensajes, setMensajeCarga, setMensajeError, setMensajeExito } = useContextoMensajes();
+  const { resetMessages, setLoadingMessage, setErrorMessage, setSuccessMessage } = useMessagesContext();
 
-  const [cargando, setCargando] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  async function login(datosFormulario, navigate) {
-    if (cargando) {
+  async function login(formData, navigate) {
+    if (loading) {
       return;
     }
 
-    setCargando(true);
-    limpiaMensajes();
-    setMensajeCarga("Loading...");
+    setLoading(true);
+    resetMessages();
+    setLoadingMessage("Loading...");
 
-    const respuestaLogin = await enviarLogin(datosFormulario);
+    const loginResponse = await enviarLogin(formData);
 
-    setMensajeCarga("");
-    setCargando(false);
+    setLoadingMessage("");
+    setLoading(false);
 
-    if (respuestaLogin.error) {
-      setMensajeError("Error ingresando");
+    if (loginResponse.error) {
+      setErrorMessage("Error ingresando");
       return;
     }
 
-    if (respuestaLogin.status == 400) {
-      setMensajeError("Credenciales invalidas");
+    if (loginResponse.status == 400) {
+      setErrorMessage("Credenciales invalidas");
       return;
     }
 
-    if (respuestaLogin.status === 403) {
-      setMensajeError("Tu cuenta no esta activa");
+    if (loginResponse.status === 403) {
+      setErrorMessage("Tu cuenta no esta activa");
       return;
     }
 
-    if (respuestaLogin.status === 200) {
-      setMensajeCarga("");
-      setCargando(false);
+    if (loginResponse.status === 200) {
+      setLoadingMessage("");
+      setLoading(false);
       navigate("/");
       return;
     }
   }
 
   async function register(registerInput, setEmailInvalid, setPasswordInvalid) {
-    if (cargando) {
+    if (loading) {
       return;
     }
 
-    setCargando(true);
-    limpiaMensajes();
+    setLoading(true);
+    resetMessages();
     setEmailInvalid(false);
     setPasswordInvalid(false);
-    setMensajeCarga("Loading...");
+    setLoadingMessage("Loading...");
 
     const registerResponse = await submitRegistration(registerInput);
 
     if (registerResponse.error) {
-      setMensajeError("An error ocurred while submiting the account");
-      setCargando(false);
-      setMensajeCarga("");
+      setErrorMessage("An error ocurred while submiting the account");
+      setLoading(false);
+      setLoadingMessage("");
       return;
     }
 
@@ -87,22 +87,22 @@ export function AuthenticationProvider({ children }) {
       if (registerResponse.usernameUnique && registerResponse.usernameValid && registerResponse.emailUnique && registerResponse.emailValid && registerResponse.passwordValid && registerResponse.passwordsMatch && registerResponse.invalidData) {
         setPasswordInvalid(true);
       }
-      setMensajeError(message);
-      setCargando(false);
-      setMensajeCarga("");
+      setErrorMessage(message);
+      setLoading(false);
+      setLoadingMessage("");
       return;
     }
 
     if (registerResponse.status === 200) {
-      setMensajeExito("Account created, check your email to finalize the creation");
-      setCargando(false);
-      setMensajeCarga("");
+      setSuccessMessage("Account created, check your email to finalize the creation");
+      setLoading(false);
+      setLoadingMessage("");
       return;
     }
 
-    setMensajeError("There was an error while submiting the account information");
-    setCargando(false);
-    setMensajeCarga("");
+    setErrorMessage("There was an error while submiting the account information");
+    setLoading(false);
+    setLoadingMessage("");
     return;
   }
 
@@ -114,7 +114,7 @@ export function AuthenticationProvider({ children }) {
   }, []);
 
   return (
-    <AuthenticationContext.Provider value={{ login, register, cargando }}>
+    <AuthenticationContext.Provider value={{ login, register, loading }}>
       {children}
     </AuthenticationContext.Provider>
   );

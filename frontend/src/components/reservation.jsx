@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 export default function Reserva() {
-  const [datosFormulario, setDatosFormulario] = useState({
+  const [formData, setFormData] = useState({
     nombre: "",
-    correo: "",
+    email: "",
     telefono: "",
     fecha: "",
     hora: "",
@@ -43,15 +43,15 @@ export default function Reserva() {
     ],
   };
 
-  const handleCambio = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setDatosFormulario((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleEnviar = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     // Cada vez que se busca disponibilidad, limpiamos el resumen previo
@@ -85,8 +85,8 @@ export default function Reserva() {
     let mensajeBase;
     if (hayDisponibles) {
       mensajeBase = `Estos son los horarios disponibles para tu visita de ${
-        datosFormulario.personas
-      } persona(s) el día ${datosFormulario.fecha || "(fecha por definir)"}:`;
+        formData.personas
+      } persona(s) el día ${formData.fecha || "(fecha por definir)"}:`;
     } else {
       mensajeBase =
         "No encontramos horarios disponibles para la fecha seleccionada. Prueba con otro horario o día.";
@@ -107,13 +107,13 @@ export default function Reserva() {
 
     setResumenReserva({
       codigo,
-      nombre: datosFormulario.nombre,
-      correo: datosFormulario.correo,
-      telefono: datosFormulario.telefono,
-      fecha: datosFormulario.fecha,
+      nombre: formData.nombre,
+      email: formData.email,
+      telefono: formData.telefono,
+      fecha: formData.fecha,
       hora: selectedSlot,
-      personas: datosFormulario.personas,
-      zona: datosFormulario.zona,
+      personas: formData.personas,
+      zona: formData.zona,
       platillo: platoSeleccionado || null,
     });
   };
@@ -137,8 +137,8 @@ export default function Reserva() {
               <div className="reservation-card">
                 <h2>Datos de tu reserva</h2>
 
-                <form className="reservation-form" onSubmit={handleEnviar}>
-                  {/* Nombre y correo */}
+                <form className="reservation-form" onSubmit={handleSubmit}>
+                  {/* Nombre y email */}
                   <div className="form-row">
                     <div className="form-group">
                       <label htmlFor="nombre">Nombre completo</label>
@@ -146,22 +146,22 @@ export default function Reserva() {
                         type="text"
                         id="nombre"
                         name="nombre"
-                        value={datosFormulario.nombre}
-                        onChange={handleCambio}
+                        value={formData.nombre}
+                        onChange={handleChange}
                         placeholder="Ej. Ana López"
                         required
                       />
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="correo">Correo electrónico</label>
+                      <label htmlFor="email">Correo electrónico</label>
                       <input
                         type="email"
-                        id="correo"
-                        name="correo"
-                        value={datosFormulario.correo}
-                        onChange={handleCambio}
-                        placeholder="tucorreo@ejemplo.com"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="tuemail@ejemplo.com"
                         required
                       />
                     </div>
@@ -175,8 +175,8 @@ export default function Reserva() {
                         type="tel"
                         id="telefono"
                         name="telefono"
-                        value={datosFormulario.telefono}
-                        onChange={handleCambio}
+                        value={formData.telefono}
+                        onChange={handleChange}
                         placeholder="Ej. 55 1234 5678"
                       />
                     </div>
@@ -190,8 +190,8 @@ export default function Reserva() {
                         type="date"
                         id="fecha"
                         name="fecha"
-                        value={datosFormulario.fecha}
-                        onChange={handleCambio}
+                        value={formData.fecha}
+                        onChange={handleChange}
                         required
                       />
                     </div>
@@ -202,8 +202,8 @@ export default function Reserva() {
                         type="time"
                         id="hora"
                         name="hora"
-                        value={datosFormulario.hora}
-                        onChange={handleCambio}
+                        value={formData.hora}
+                        onChange={handleChange}
                         required
                       />
                     </div>
@@ -213,8 +213,8 @@ export default function Reserva() {
                       <select
                         id="personas"
                         name="personas"
-                        value={datosFormulario.personas}
-                        onChange={handleCambio}
+                        value={formData.personas}
+                        onChange={handleChange}
                       >
                         <option value="1">1 persona</option>
                         <option value="2">2 personas</option>
@@ -238,8 +238,8 @@ export default function Reserva() {
                             type="radio"
                             name="zona"
                             value="interior"
-                            checked={datosFormulario.zona === "interior"}
-                            onChange={handleCambio}
+                            checked={formData.zona === "interior"}
+                            onChange={handleChange}
                           />
                           Interior
                         </label>
@@ -248,8 +248,8 @@ export default function Reserva() {
                             type="radio"
                             name="zona"
                             value="terraza"
-                            checked={datosFormulario.zona === "terraza"}
-                            onChange={handleCambio}
+                            checked={formData.zona === "terraza"}
+                            onChange={handleChange}
                           />
                           Terraza
                         </label>
@@ -258,8 +258,8 @@ export default function Reserva() {
                             type="radio"
                             name="zona"
                             value="barra"
-                            checked={datosFormulario.zona === "barra"}
-                            onChange={handleCambio}
+                            checked={formData.zona === "barra"}
+                            onChange={handleChange}
                           />
                           Barra
                         </label>
@@ -276,8 +276,8 @@ export default function Reserva() {
                       <textarea
                         id="comentarios"
                         name="comentarios"
-                        value={datosFormulario.comentarios}
-                        onChange={handleCambio}
+                        value={formData.comentarios}
+                        onChange={handleChange}
                         rows="3"
                         placeholder="Ej. Cumpleaños, alergias, silla para bebé..."
                       />
@@ -496,7 +496,7 @@ export default function Reserva() {
                           <strong>Nombre:</strong> {resumenReserva.nombre}
                         </li>
                         <li>
-                          <strong>Correo:</strong> {resumenReserva.correo}
+                          <strong>Correo:</strong> {resumenReserva.email}
                         </li>
                         {resumenReserva.telefono && (
                           <li>

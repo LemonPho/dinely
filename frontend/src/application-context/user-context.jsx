@@ -10,7 +10,6 @@ export function UserContextProvider({ children }) {
   async function retrieveCurrentUser() {
     setUserLoading(true);
     const userResponse = await getCurrentUser();
-    console.log(userResponse);
     setUser(userResponse.user);
     setUserLoading(false);
   }

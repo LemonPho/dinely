@@ -1,7 +1,7 @@
 import "../styles/global.css";
 import { Link } from "react-router-dom";
 
-export default function Principal() {
+export default function MainPage() {
   return (
     <>
       {/* HERO */}

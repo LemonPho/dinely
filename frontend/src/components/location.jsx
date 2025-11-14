@@ -50,7 +50,7 @@ export default function Ubicacion() {
 
                 <p className="location-note">
                   Para grupos mayores a 8 personas o eventos especiales, te
-                  recomendamos contactarnos directamente por teléfono o correo.
+                  recomendamos contactarnos directamente por teléfono o email.
                 </p>
               </section>
 
@@ -87,11 +87,11 @@ export default function Ubicacion() {
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="correoContacto">Correo electrónico</label>
+                      <label htmlFor="emailContacto">Correo electrónico</label>
                       <input
-                        id="correoContacto"
+                        id="emailContacto"
                         type="email"
-                        placeholder="tucorreo@ejemplo.com"
+                        placeholder="tuemail@ejemplo.com"
                       />
                     </div>
 

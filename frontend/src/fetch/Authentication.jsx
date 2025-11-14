@@ -14,7 +14,7 @@ export function obtenerCookie(name) {
   return cookieValue;
 }
 
-export async function enviarLogin(datosFormulario) {
+export async function enviarLogin(formData) {
   let response = {
     error: false,
     status: 0,
@@ -31,8 +31,8 @@ export async function enviarLogin(datosFormulario) {
         "Content-type": "application/json",
       },
       body: JSON.stringify({
-        email: datosFormulario.correo,
-        password: datosFormulario.contrasena,
+        email: formData.email,
+        password: formData.password,
       }),
     });
 

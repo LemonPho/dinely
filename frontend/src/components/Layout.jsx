@@ -1,9 +1,9 @@
-import { useContextoMensajes } from "../application-context/contexto-mensajes";
+import { useMessagesContext } from "../application-context/messages-context";
 import { Link, Outlet } from "react-router-dom";
 import "../styles/global.css";
 
 export default function Layout() {
-  const { mensajeError, mensajeExito, mensajeCarga, limpiaMensajes } = useContextoMensajes();
+  const { errorMessage, successMessage, loadingMessage, resetMessages } = useMessagesContext();
 
   return (
     <div className="app-root">
@@ -26,46 +26,46 @@ export default function Layout() {
       <main>
         {/* ALERTAS DE MENSAJES */}
         <div className="alert-container">
-          {mensajeError && (
+          {errorMessage && (
             <div
               className="alert alert-danger my-2 alert-positioning d-flex align-items-center"
               style={{ whiteSpace: "pre-line" }}
               onClick={(e) => {
                 e.stopPropagation();
-                limpiaMensajes();
+                resetMessages();
               }}
             >
-              {mensajeError}
+              {errorMessage}
               <button className="ms-auto btn btn-link link-no-decorations p-0">
                 <h4 aria-hidden="true">&times;</h4>
               </button>
             </div>
           )}
-          {mensajeExito && (
+          {successMessage && (
             <div
               className="alert alert-success my-2 alert-positioning d-flex align-items-center"
               style={{ whiteSpace: "pre-line" }}
               onClick={(e) => {
                 e.stopPropagation();
-                limpiaMensajes();
+                resetMessages();
               }}
             >
-              {mensajeExito}
+              {successMessage}
               <button className="ms-auto btn btn-link link-no-decorations p-0">
                 <h4 aria-hidden="true">&times;</h4>
               </button>
             </div>
           )}
-          {mensajeCarga && (
+          {loadingMessage && (
             <div
               className="alert alert-secondary my-2 alert-positioning d-flex align-items-center"
               style={{ whiteSpace: "pre-line" }}
               onClick={(e) => {
                 e.stopPropagation();
-                limpiaMensajes();
+                resetMessages();
               }}
             >
-              {mensajeCarga}
+              {loadingMessage}
               <button className="ms-auto btn btn-link link-no-decorations p-0">
                 <h4 aria-hidden="true">&times;</h4>
               </button>
