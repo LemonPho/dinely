@@ -1,5 +1,5 @@
 import React from "react";
-import { useOpenersContext } from "../OpenersContext";
+import { useOpenersContext } from "../application-context/openers-context.jsx";
 
 export default function Modal({ isOpen, children }){
     if(!isOpen) return null;

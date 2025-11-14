@@ -1,5 +1,5 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
-import { getCsrfToken, enviarLogin, submitRegistration } from "../fetch/authentication";
+import { getCsrfToken, enviarLogin, submitRegistration, enviarLogout } from "../fetch/authentication";
 import { useMessagesContext } from "./messages-context";
 
 export const AuthenticationContext = createContext();
@@ -106,6 +106,32 @@ export function AuthenticationProvider({ children }) {
     return;
   }
 
+  async function logout(navigate) {
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    resetMessages();
+    setLoadingMessage("Cerrando sesión...");
+
+    const logoutResponse = await enviarLogout();
+
+    setLoadingMessage("");
+    setLoading(false);
+
+    if (logoutResponse.error) {
+      setErrorMessage("Error al cerrar sesión");
+      return;
+    }
+
+    if (logoutResponse.status === 200 || logoutResponse.status === 204) {
+      navigate("/");
+      window.location.reload();
+      return;
+    }
+  }
+
   useEffect(() => {
     async function fetchData() {
       await getCsrfToken();
@@ -114,7 +140,7 @@ export function AuthenticationProvider({ children }) {
   }, []);
 
   return (
-    <AuthenticationContext.Provider value={{ login, register, loading }}>
+    <AuthenticationContext.Provider value={{ login, register, logout, loading }}>
       {children}
     </AuthenticationContext.Provider>
   );

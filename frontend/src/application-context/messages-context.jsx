@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 
 const MessagesContext = createContext();
 
-export function ProveedorMensajesContexto( {children}){
+export function MessagesProvider( {children}){
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [loadingMessage, setLoadingMessage] = useState("");
