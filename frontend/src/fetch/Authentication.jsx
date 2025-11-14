@@ -92,6 +92,33 @@ export async function getCurrentUser() {
   return response;
 }
 
+export async function enviarLogout() {
+  let response = {
+    error: false,
+    status: 0,
+  }
+
+  try {
+    const csrftoken = obtenerCookie("csrftoken");
+
+    const apiResponse = await fetch(`/api/authentication/logout/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+    });
+
+    response.status = apiResponse.status;
+    response.error = apiResponse.status === 500;
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
 export async function submitRegistration(registerInput) {
   let response = {
     error: false,
