@@ -3,15 +3,15 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, email, password):
+    def create_user(self, name, email, password):
         if not email:
             raise ValueError('User must have a valid email')
-        
-        if not username:
-            raise ValueError("User must have a valid username")
+
+        if not name:
+            raise ValueError('User must have a name')
         
         user = self.model(
-            username = username,
+            name = name,
             email = self.normalize_email(email),
         )
 
@@ -20,9 +20,9 @@ class UserManager(BaseUserManager):
 
         return user
     
-    def create_superuser(self, username, email, password):
+    def create_superuser(self, name, email, password):
         user = self.create_user(
-            username,
+            name,
             email,
             password,
         )
@@ -32,17 +32,20 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     is_admin = models.BooleanField(default=False)
-    is_employee = models.BooleanField(default=False)
+    is_waiter = models.BooleanField(default=False)
+    is_kitchen = models.BooleanField(default=False)
 
+    phone_number = models.CharField(max_length=16)
+    name = models.CharField(max_length=32)
     email = models.EmailField('email address', unique=True)
     date_created = models.DateTimeField(null=True, auto_now_add=True)
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'username'
     EMAIL_FIELD = 'email'
-    REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = ['email', 'name']
 
+    @property
     def __str__(self):
         return f"{self.username}"
     
@@ -53,5 +56,59 @@ class User(AbstractUser):
         return self.is_admin
     
     @property
-    def is_staff(self):
-        return self.is_employee
+    def is_employee(self):
+        return self.is_kitchen or self.is_waiter
+
+#Misma razon de existencia que PlateCategory
+class TableArea(models.Model):
+    label = models.CharField(max_length=64)
+
+class Table(models.Model):
+    code = models.CharField(max_length=64)
+    capacity = models.PositiveIntegerField()
+    state = models.CharField()
+    area = models.ForeignKey(TableArea, on_delete=models.SET_NULL, related_name="tables", null=True)
+    notes = models.CharField(max_length=2048, null=True, blank=True)
+    class Meta:
+        ordering = ["area"]
+
+class Reservation(models.Model):
+    client = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="reservations", null=True, blank=True)
+    # Tenemos informacion del cliente aqui directo por si hace una reservacion sin cuenta (mayoria de los casos)
+    # Aunque haya un cliente asociado hay que popular esta informacion para consistencia
+    name = models.CharField(max_length=64)
+    email = models.CharField(max_length=64, null=True, blank=True)
+    phone_number = models.CharField(max_length=16, null=True, blank=True)
+
+    code = models.CharField(max_length=16) # RES-######
+    date_time = models.DateTimeField()
+    table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="reservations", null=True)
+    amount_people = models.PositiveIntegerField()
+    state = models.CharField()
+
+#Asi el restaurante puede tener varios categorias y nos facilita obtener cuales son los categorias disponibles
+class PlateCategory(models.Model):
+    label = models.CharField(max_length=64)
+
+class Plate(models.Model):
+    name = models.CharField(max_length=64)
+    price = models.FloatField()
+    category = models.ForeignKey(PlateCategory, on_delete=models.SET_NULL, related_name="plates", null=True)
+    description = models.CharField(max_length=2048)
+
+class Account(models.Model):
+    code = models.CharField(max_length=16) # CUE-######
+    table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="accounts", null=True)
+    waiter = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="accounts", null=True)
+    date_time = models.DateTimeField()
+    state = models.CharField()
+    total = models.FloatField()
+    total_paid = models.FloatField()
+    tip = models.IntegerField()
+
+#Table de union entre cuentas y platos, es para tener varios platos en una cuenta
+class AccountPlate(models.Model):
+    plate = models.ForeignKey(Plate, on_delete=models.CASCADE, related_name="accounts", null=True)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="plates", null=True)
+    notes = models.CharField(max_length=1024)
+

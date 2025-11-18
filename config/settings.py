@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    'rest_framework'
+    'rest_framework',
+    'backend'
 ]
 
 MIDDLEWARE = [
@@ -63,6 +64,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
 ]
+
+AUTH_USER_MODEL = "backend.User"
 
 ROOT_URLCONF = 'config.urls'
 
