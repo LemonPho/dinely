@@ -1,12 +1,14 @@
 from django.http import HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
 from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 
 import json
 
-from backend.serializers.Users import UserCreateSerializer, UserReadSerializer
-from backend.views.authentication.utils import is_email_valid, is_username_valid
-from backend.views.authentication.validators import validate_registration
+from backend.serializers.users import UserCreateSerializer, UserReadSerializer
+from backend.views.authentication.validators import validate_registration, validate_set_password
 
 def get_csrf_token(request):
     get_token(request)  # CSRF
@@ -22,14 +24,19 @@ def register(request):
     
     response = validate_registration(data, User)
 
+    if not response["okay"]:
+        response.pop("okay")
+        return JsonResponse(response, status=400)
+
     serializer = UserCreateSerializer(data=data)
     if not serializer.is_valid():
         print(serializer.errors)
+        response["okay"] = False
         response["valid_data"] = False
     
     # Check if all validations passed
-    keys = response.keys()
-    if not all(response.get(key, False) for key in keys):
+    if not response["okay"]:
+        response.pop("okay")
         return JsonResponse(response, status=400, content_type="application/json")
 
     user = serializer.save()
@@ -60,6 +67,23 @@ def login_view(request):
         return JsonResponse(serializer.data, status=200, content_type="application/json")
     else:
         return HttpResponse(status=400)
+
+def set_password(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    
+    data = json.loads(request.body)
+
+    response = validate_set_password(data)
+    if not response["okay"]:
+        return JsonResponse(response, status=400)
+    
+    user = response["user"]
+    user.set_password(response["password"])
+    user.is_active = True
+    user.save()
+    
+    return HttpResponse(status=201)
 
 def get_current_user(request):
     if request.method != "GET":

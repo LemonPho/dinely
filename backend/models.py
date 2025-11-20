@@ -3,30 +3,32 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, name, email, password):
+    def create_user(self, email, password, name=None):
         if not email:
             raise ValueError('User must have a valid email')
-
+        
+        # Si no se proporciona name, usar el email como nombre
         if not name:
-            raise ValueError('User must have a name')
+            name = email.split('@')[0]  # Usar la parte antes del @
         
         user = self.model(
-            name = name,
-            email = self.normalize_email(email),
+            name=name,
+            email=self.normalize_email(email),
         )
-
+        
         user.set_password(password)
         user.save(using=self._db)
-
+        
         return user
     
-    def create_superuser(self, name, email, password):
+    def create_superuser(self, email, password):
         user = self.create_user(
-            name,
             email,
             password,
         )
         user.is_admin = True
+        user.is_staff = True      
+        user.is_superuser = True
         user.save(using=self._db)
         return user
 
@@ -35,6 +37,9 @@ class User(AbstractUser):
     is_waiter = models.BooleanField(default=False)
     is_kitchen = models.BooleanField(default=False)
 
+    #Este sitio no usa usernames, sino nombres (si el usuario quiere ingresa un username)
+    username = None 
+
     phone_number = models.CharField(max_length=16)
     name = models.CharField(max_length=32)
     email = models.EmailField('email address', unique=True)
@@ -42,12 +47,12 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    USERNAME_FIELD = 'email'
     EMAIL_FIELD = 'email'
-    REQUIRED_FIELDS = ['email', 'name']
+    REQUIRED_FIELDS = []
 
-    @property
     def __str__(self):
-        return f"{self.username}"
+        return f"{self.name}"
     
     def has_module_perms(self, app_label):
         return self.is_admin
