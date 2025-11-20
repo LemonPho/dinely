@@ -1,4 +1,4 @@
-export function obtenerCookie(name) {
+export function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';');
@@ -14,14 +14,14 @@ export function obtenerCookie(name) {
   return cookieValue;
 }
 
-export async function enviarLogin(formData) {
+export async function submitLogin(formData) {
   let response = {
     error: false,
     status: 0,
   }
 
   try {
-    const csrftoken = obtenerCookie("csrftoken");
+    const csrftoken = getCookie("csrftoken");
 
     const apiResponse = await fetch(`/api/authentication/login/`, {
       method: "POST",
@@ -92,14 +92,14 @@ export async function getCurrentUser() {
   return response;
 }
 
-export async function enviarLogout() {
+export async function submitLogout() {
   let response = {
     error: false,
     status: 0,
   }
 
   try {
-    const csrftoken = obtenerCookie("csrftoken");
+    const csrftoken = getCookie("csrftoken");
 
     const apiResponse = await fetch(`/api/authentication/logout/`, {
       method: "POST",
@@ -131,7 +131,7 @@ export async function submitRegistration(registerInput) {
   }
 
   try {
-    const csrftoken = obtenerCookie("csrftoken");
+    const csrftoken = getCookie("csrftoken");
     const apiResponse = await fetch(`/api/authentication/register/`, {
       method: "POST",
       headers: {
@@ -157,6 +157,49 @@ export async function submitRegistration(registerInput) {
 
   } catch (error) {
     response.error = error;
+  }
+
+  return response;
+}
+
+export async function submitSetPassword(uid, token, password) {
+  let response = {
+    error: false,
+    status: null,
+    password_short: null,
+    token_valid: null,
+    user_exists: null,
+    user_active: null,
+  }
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/authentication/set-password/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        uid: uid,
+        token: token,
+        password: password,
+      })
+    });
+    const apiResult = apiResponse.status === 400 ? await apiResponse.json() : false;
+
+    if (apiResult) {
+      response.password_short = apiResult.password_short;
+      response.token_valid = apiResult.token_valid;
+      response.user_exists = apiResult.user_exists;
+      response.user_active = apiResult.user_active;
+    }
+    response.status = apiResponse.status;
+    response.error = apiResponse.status === 500;
+
+  } catch (error) {
+    response.error = true;
   }
 
   return response;

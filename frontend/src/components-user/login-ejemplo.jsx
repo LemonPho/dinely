@@ -55,7 +55,7 @@ export default function LoginPage() {
         <h2>Login</h2>
       </div>
       <div className="custom-card-body">
-        <TextInput id="email-username-input" type="email" className="mb-2 nested" placeholder="Username or email" value={loginInput.primaryKey} setValue={handlePrimaryKeyInput} onEnterFunction={handleLogin} outline={false} />
+        <TextInput id="email-name-input" type="email" className="mb-2 nested" placeholder="Username or email" value={loginInput.primaryKey} setValue={handlePrimaryKeyInput} onEnterFunction={handleLogin} outline={false} />
         <TextInput id="password-input" type="password" className="mb-2 nested" placeholder="Password" value={loginInput.password} setValue={handlePasswordInput} onEnterFunction={handleLogin} outline={false} />
         {loginLoading && <button type="submit" className="btn btn-primary w-100 rounded-15" disabled>Loading...</button>}
         {!loginLoading && <button type="submit" className="btn btn-primary w-100 rounded-15" onClick={handleLogin}>Login</button>}
