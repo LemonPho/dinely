@@ -94,7 +94,6 @@ class Reservation(models.Model):
 #Asi el restaurante puede tener varios categorias y nos facilita obtener cuales son los categorias disponibles
 class PlateCategory(models.Model):
     label = models.CharField(max_length=64)
-
 class Plate(models.Model):
     name = models.CharField(max_length=64)
     price = models.FloatField()

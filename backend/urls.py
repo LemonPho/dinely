@@ -5,6 +5,7 @@ from backend.views.admin.users import create_user
 from .views.authentication.authentication import get_csrf_token, register, login_view, get_current_user, set_password
 
 urlpatterns = [
+    #path para obtener usuarios
     path("admin/create-user/", create_user),
     path("authentication/csrf/", get_csrf_token),
     path("authentication/register/", register),

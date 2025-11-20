@@ -9,7 +9,7 @@ from backend.email_service import send_password_setup_email
 
 def create_user(request):
     #checar si es admin y que este actualmente en una cuenta (por cualquier cosa)
-    if not request.user.is_admin or not request.user.is_authenticated:
+    if not request.user.is_authenticated or not request.user.is_admin:
         return HttpResponse(status=401)
 
     if request.method != "POST":
@@ -38,3 +38,10 @@ def create_user(request):
     send_password_setup_email(user, uid, token, request)
     
     return HttpResponse(status=201)
+
+def get_users(request):
+    if not request.user.is_admin or not request.user.is_authenticated:
+        return HttpResponse(status=401)
+
+def edit_user(request):
+    pass

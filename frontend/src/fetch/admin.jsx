@@ -39,9 +39,12 @@ export async function createUser(formData, creating, editing){
 
         console.log(apiResult);
 
-        result.name = apiResult ? apiResult.name : null;
-        result.email = apiResult ? apiResult.email : null;
-        result.user_exists = apiResult ? apiResult.user_exists : null;
+        if(apiResult){
+            result.name = apiResult.name;
+            result.email = apiResult.email;
+            result.user_exists = apiResult.user_exists;
+        }
+        
 
         result.error = apiResponse.status === 500;
         result.status = apiResponse.status;
