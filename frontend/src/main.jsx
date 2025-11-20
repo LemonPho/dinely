@@ -7,6 +7,7 @@ import Menu from "./components-user/menu.jsx";        // Página de Menú
 import Ubicacion from "./components-user/location.jsx"; // Nueva página Ubicación
 import MisReservas from "./components-user/reservations.jsx";
 import Login from "./components-user/login.jsx";
+import SetPassword from "./components-user/set-password.jsx";
 import Layout from "./components-user/layout.jsx";
 import MainPage from "./components-user/main-page.jsx";
 import AdminDashboard from "./components-admin/admin-dashboard.jsx";
@@ -60,6 +61,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   <Route path="/ubicacion" element={<Ubicacion />} />
                   <Route path="/mis-reservas" element={<MisReservas />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/set-password/:uid/:token" element={<SetPassword />} />
                 </Route>
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminDashboard />} />

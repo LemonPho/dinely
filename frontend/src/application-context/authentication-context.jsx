@@ -1,5 +1,5 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
-import { getCsrfToken, enviarLogin, submitRegistration, enviarLogout } from "../fetch/authentication";
+import { getCsrfToken, submitLogin, submitRegistration, submitLogout } from "../fetch/authentication";
 import { useMessagesContext } from "./messages-context";
 
 export const AuthenticationContext = createContext();
@@ -19,7 +19,7 @@ export function AuthenticationProvider({ children }) {
     resetMessages();
     setLoadingMessage("Loading...");
 
-    const loginResponse = await enviarLogin(formData);
+    const loginResponse = await submitLogin(formData);
 
     setLoadingMessage("");
     setLoading(false);
@@ -115,7 +115,7 @@ export function AuthenticationProvider({ children }) {
     resetMessages();
     setLoadingMessage("Cerrando sesión...");
 
-    const logoutResponse = await enviarLogout();
+    const logoutResponse = await submitLogout();
 
     setLoadingMessage("");
     setLoading(false);
