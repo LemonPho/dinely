@@ -927,6 +927,13 @@
   gap: 1.25rem;
 }
 
+.admin-modal-form-rows {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 .admin-form-group {
   display: flex;
   flex-direction: column;
@@ -1087,7 +1094,8 @@
   }
 
   .admin-modal-header,
-  .admin-modal-form {
+  .admin-modal-form,
+  .admin-modal-form-rows {
     padding: 1.25rem;
   }
 
