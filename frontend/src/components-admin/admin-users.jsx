@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import "../styles/global.css";
@@ -6,11 +6,27 @@ import "../styles/admin.css";
 import { createUser } from "../fetch/Admin.jsx";
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 
+
 export default function AdminUsersPage() {
   const { openedModal, openModal, closeModal } = useOpenersContext();
   const { setErrorMessage, setSuccessMessage, setLoadingMessage, resetMessages } = useMessagesContext();
 
   const [users, setUsers] = useState([]);
+  // Cargar usuarios desde el backend
+useEffect(() => {
+  fetch("http://localhost:8000/api/admin/list-users/", {
+    credentials: "include",
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log("Usuarios cargados:", data);
+      setUsers(data);
+    })
+    .catch(err => {
+      console.error("Error al cargar usuarios:", err);
+    });
+}, []);
+
 
   const [isEditing, setIsEditing] = useState({});
   const [isCreating, setIsCreating] = useState(false);
