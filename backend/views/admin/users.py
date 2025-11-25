@@ -1,8 +1,11 @@
 import json
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse, JsonResponse
+from backend.serializers.users import UserReadSerializer
+
 
 from backend.serializers.users import AdminUserCreateSerializer
+
 from backend.views.admin.validators import validate_create_user
 from backend.views.authentication.utils import generate_password_setup_token
 from backend.email_service import send_password_setup_email
@@ -38,3 +41,14 @@ def create_user(request):
     send_password_setup_email(user, uid, token, request)
     
     return HttpResponse(status=201)
+
+def list_users(request):
+    # Solo permitir a administradores autenticados
+    if not request.user.is_authenticated or not request.user.is_admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+
+    User = get_user_model()
+    users = User.objects.all()
+
+    serializer = UserReadSerializer(users, many=True)
+    return JsonResponse(serializer.data, safe=False)

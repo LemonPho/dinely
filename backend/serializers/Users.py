@@ -24,7 +24,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class AdminUserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['email', 'name', 'is_admin', 'is_waiter', 'is_kitchen']
+        fields = ['email', 'name', 'is_admin', 'is_waiter', 'is_kitchen']   
 
     def create(self, validated_data):
         User = get_user_model()
@@ -36,7 +36,14 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         #El empleado recibe un correo
         return user
 
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'name', 'email', 'is_admin', 'is_waiter', 'is_kitchen']
+
 class UserReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['email']
+        fields = ['id', 'email', 'name', 'is_admin', 'is_waiter', 'is_kitchen']
+
+
