@@ -4,6 +4,8 @@ import Modal from "../util-components/Modal.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
 import { createUser } from "../fetch/Admin.jsx";
+import { fetchUsers } from "../fetch/AdminUsers.js";
+
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 
 
@@ -14,18 +16,15 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   // Cargar usuarios desde el backend
 useEffect(() => {
-  fetch("http://localhost:8000/api/admin/list-users/", {
-    credentials: "include",
-  })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Usuarios cargados:", data);
-      setUsers(data);
-    })
-    .catch(err => {
-      console.error("Error al cargar usuarios:", err);
-    });
+  async function loadUsers() {
+    const data = await fetchUsers();
+    console.log("Usuarios cargados:", data);
+    setUsers(data);
+  }
+
+  loadUsers();
 }, []);
+
 
 
   const [isEditing, setIsEditing] = useState({});

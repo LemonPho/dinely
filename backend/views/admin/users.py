@@ -1,7 +1,8 @@
 import json
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse, JsonResponse
-from backend.serializers.users import UserListSerializer
+from backend.serializers.users import UserReadSerializer
+
 
 from backend.serializers.users import AdminUserCreateSerializer
 
@@ -49,5 +50,5 @@ def list_users(request):
     User = get_user_model()
     users = User.objects.all()
 
-    serializer = UserListSerializer(users, many=True)
+    serializer = UserReadSerializer(users, many=True)
     return JsonResponse(serializer.data, safe=False)
