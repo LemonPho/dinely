@@ -88,6 +88,45 @@ export async function createPlateCategory(category) {
   return result;
 }
 
+export async function editPlateCategory(categoryId, label) {
+  let result = {
+    error: false,
+    status: null,
+    plateCategories: [],
+    plates: [],
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/edit-plate-category/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: categoryId,
+        label: label
+      }),
+    });
+
+    const apiResult = apiResponse.status === 201 ? await apiResponse.json() : null;
+
+    if (apiResult) {
+      result.plateCategories = apiResult.plate_categories || [];
+      result.plates = apiResult.plates || [];
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
 export async function getPlateCategories() {
   let response = {
     plateCategores: [],
@@ -105,6 +144,72 @@ export async function getPlateCategories() {
     response.error = apiResponse.status === 500;
     response.status = apiResponse.status;
     response.plateCategores = apiResponse.status === 200 ? apiResult.plate_categories : undefined;
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function createPlate(plateData) {
+  let result = {
+    error: false,
+    status: null,
+    plate: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/create-plate/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: plateData.name,
+        price: parseFloat(plateData.price),
+        category: plateData.category,
+        description: plateData.description,
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.plate = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function getPlates() {
+  let response = {
+    plates: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-plates/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.plates = apiResponse.status === 200 ? apiResult.plates : [];
   } catch (error) {
     response.error = true;
   }

@@ -3,9 +3,10 @@ import { useOpenersContext } from "../application-context/openers-context.jsx";
 import { useMessagesContext } from "../application-context/messages-context.jsx"
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
+import Messages from "../util-components/messages.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
-import { createPlateCategory, getPlateCategories } from "../fetch/Admin.jsx";
+import { createPlateCategory, getPlateCategories, createPlate, getPlates, editPlateCategory } from "../fetch/Admin.jsx";
 
 export default function AdminPlatesPage() {
   const { openedModal, openModal, closeModal, openedDropdown, toggleDropdown, closeDropdown } = useOpenersContext();
@@ -32,12 +33,36 @@ export default function AdminPlatesPage() {
     label: ""
   });
 
+  function groupPlatesByCategory(plates) {
+    // Organizar los platillos por categoría
+    // Los platillos ya vienen ordenados por categoría y nombre desde el backend
+    const platesByCategory = {};
+    plates.forEach((plate) => {
+      const categoryLabel = plate.category?.label || "Sin categoría";
+      if (!platesByCategory[categoryLabel]) {
+        platesByCategory[categoryLabel] = [];
+      }
+      platesByCategory[categoryLabel].push(plate);
+    });
+    return platesByCategory;
+  }
+
   async function retrievePlateCategories(){
     const apiResponse = await getPlateCategories();
     if(apiResponse.status === 200){
       setPlateCategories(apiResponse.plateCategores);
     } else {
       setErrorMessage("Hubo un error al obtener los categorias de platos");
+    }
+  }
+
+  async function retrievePlates() {
+    const apiResponse = await getPlates();
+    if (apiResponse.status === 200) {
+      const platesByCategory = groupPlatesByCategory(apiResponse.plates);
+      setPlates(platesByCategory);
+    } else {
+      setErrorMessage("Hubo un error al obtener los platillos");
     }
   }
 
@@ -48,7 +73,7 @@ export default function AdminPlatesPage() {
       id: plate.id || "",
       name: plate.name,
       price: plate.price.toString(),
-      category: plate.category,
+      category: plate.category?.label || "",
       description: plate.description || "",
     });
     openModal(`edit-plate-${plate.id}`);
@@ -125,34 +150,43 @@ export default function AdminPlatesPage() {
   async function handleSubmitCategory(e) {
     e.preventDefault();
     if (isEditing) {
-      if (!editCategoryFormData.label.trim()) {
+      const trimmedLabel = (editCategoryFormData.label || "").trim();
+      if (!trimmedLabel) {
         setErrorMessage("El nombre de la categoría no puede estar vacío");
         return;
       }
 
-      setEditCategoryFormData({
-        ...editCategoryFormData,
-        label: editCategoryFormData.label.trim(),
-      });
-
-      //api call
-
-      //setPlateCategories(updatedCategories);
-      setIsEditing(false);
-      setIsCreating(false);
-      setEditCategoryFormData({ id: "", label: "" });
-      setSuccessMessage("Categoría actualizada exitosamente");
+      // Llamar a la API para editar la categoría
+      const apiResponse = await editPlateCategory(editCategoryFormData.id, trimmedLabel);
+      
+      if (apiResponse.status === 201) {
+        // Actualizar categorías y platillos con los datos del backend
+        setPlateCategories(apiResponse.plateCategories);
+        
+        // Organizar los platillos por categoría
+        const platesByCategory = groupPlatesByCategory(apiResponse.plates);
+        setPlates(platesByCategory);
+        
+        setIsEditing(false);
+        setIsCreating(false);
+        setEditCategoryFormData({ id: "", label: "" });
+        setSuccessMessage("Categoría actualizada exitosamente");
+      } else {
+        setErrorMessage("Error al actualizar la categoría. Verifique que no exista ya una categoría con ese nombre.");
+      }
     } else {
-      if (!categoryInput.trim()) {
+      // Validar y limpiar el input
+      const trimmedCategory = (categoryInput || "").trim();
+      if (!trimmedCategory) {
         setErrorMessage("El nombre de la categoría no puede estar vacío");
         return;
       }
 
-      // Create new category object with id and label
-      setCategoryInput(categoryInput.trim());
+      // Actualizar el estado con el valor limpio
+      setCategoryInput(trimmedCategory);
 
-      //api call
-      const apiResponse = await createPlateCategory(categoryInput);
+      // Llamar a la API con el valor ya limpiado
+      const apiResponse = await createPlateCategory(trimmedCategory);
       if (apiResponse.status === 201) {
         setSuccessMessage("Categoría creada");
         setPlateCategories([...plateCategories, apiResponse.category]);
@@ -163,13 +197,86 @@ export default function AdminPlatesPage() {
     }
   }
 
-  async function handleSubmitPlate(){
+  async function handleSubmitPlate(e) {
+    e.preventDefault();
 
+    // Validaciones del lado del cliente
+    if (!plateFormData.name.trim()) {
+      setErrorMessage("El nombre del platillo no puede estar vacío");
+      return;
+    }
+
+    if (!plateFormData.price || parseFloat(plateFormData.price) <= 0) {
+      setErrorMessage("El precio debe ser mayor a cero");
+      return;
+    }
+
+    if (!plateFormData.description.trim()) {
+      setErrorMessage("La descripción no puede estar vacía");
+      return;
+    }
+
+    if (!plateFormData.category) {
+      setErrorMessage("Debes seleccionar una categoría");
+      return;
+    }
+
+    // Llamar a la API
+    const apiResponse = await createPlate(plateFormData);
+
+    if (apiResponse.status === 201) {
+      setSuccessMessage("Platillo creado exitosamente");
+      
+      // Agregar el platillo a la lista local
+      const newPlate = apiResponse.plate;
+      const categoryLabel = newPlate.category?.label || "Sin categoría";
+      
+      setPlates((prevPlates) => {
+        const updatedPlates = { ...prevPlates };
+        if (!updatedPlates[categoryLabel]) {
+          updatedPlates[categoryLabel] = [];
+        }
+        updatedPlates[categoryLabel] = [...updatedPlates[categoryLabel], newPlate];
+        return updatedPlates;
+      });
+
+      // Limpiar el formulario y cerrar modal
+      setPlateFormData({
+        id: "",
+        name: "",
+        price: "",
+        category: "",
+        description: "",
+      });
+      closeModal();
+    } else if (apiResponse.status === 400) {
+      // Errores de validación del backend
+      const errors = apiResponse.validationErrors;
+      let errorMessage = "Error al crear el platillo:\n";
+      
+      if (errors.name) {
+        errorMessage += `- ${errors.name[0]}\n`;
+      }
+      if (errors.price) {
+        errorMessage += `- ${errors.price[0]}\n`;
+      }
+      if (errors.description) {
+        errorMessage += `- ${errors.description[0]}\n`;
+      }
+      if (errors.category) {
+        errorMessage += `- ${errors.category[0]}\n`;
+      }
+      
+      setErrorMessage(errorMessage);
+    } else {
+      setErrorMessage("Hubo un error al crear el platillo. Por favor intenta de nuevo.");
+    }
   }
 
   useEffect(() => {
     async function fetchData(){
       await retrievePlateCategories();
+      await retrievePlates();
     }
 
     fetchData();
@@ -222,7 +329,7 @@ export default function AdminPlatesPage() {
                   <div className="admin-table-header">
                     <h3>{plate.name}</h3>
                     <span className="admin-table-status">
-                      {plate.category}
+                      {plate.category?.label || "Sin categoría"}
                     </span>
                   </div>
                   <div className="admin-table-details">
@@ -252,54 +359,7 @@ export default function AdminPlatesPage() {
               ×
             </button>
           </div>
-          {/*Mensajes */}
-          <div className="alert-container">
-            {errorMessage && (
-              <div
-                className="alert alert-danger my-2 alert-positioning d-flex align-items-center"
-                style={{ whiteSpace: "pre-line" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetMessages();
-                }}
-              >
-                {errorMessage}
-                <button className="ms-auto btn btn-link link-no-decorations p-0">
-                  <h4 aria-hidden="true">&times;</h4>
-                </button>
-              </div>
-            )}
-            {successMessage && (
-              <div
-                className="alert alert-success my-2 alert-positioning d-flex align-items-center"
-                style={{ whiteSpace: "pre-line" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetMessages();
-                }}
-              >
-                {successMessage}
-                <button className="ms-auto btn btn-link link-no-decorations p-0">
-                  <h4 aria-hidden="true">&times;</h4>
-                </button>
-              </div>
-            )}
-            {loadingMessage && (
-              <div
-                className="alert alert-secondary my-2 alert-positioning d-flex align-items-center"
-                style={{ whiteSpace: "pre-line" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetMessages();
-                }}
-              >
-                {loadingMessage}
-                <button className="ms-auto btn btn-link link-no-decorations p-0">
-                  <h4 aria-hidden="true">&times;</h4>
-                </button>
-              </div>
-            )}
-          </div>
+          <Messages />
           <div className="admin-modal-form-rows" style={{ padding: "1.5rem" }}>
             {/* Create new category */}
             <form onSubmit={handleSubmitCategory} style={{ marginBottom: "2rem", paddingBottom: "2rem", borderBottom: "1px solid #e0e0e0" }}>
