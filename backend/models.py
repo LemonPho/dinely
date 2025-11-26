@@ -93,13 +93,16 @@ class Reservation(models.Model):
 
 #Asi el restaurante puede tener varios categorias y nos facilita obtener cuales son los categorias disponibles
 class PlateCategory(models.Model):
-    label = models.CharField(max_length=64)
+    label = models.CharField(max_length=64, unique=True)
 
 class Plate(models.Model):
     name = models.CharField(max_length=64)
     price = models.FloatField()
     category = models.ForeignKey(PlateCategory, on_delete=models.SET_NULL, related_name="plates", null=True)
     description = models.CharField(max_length=2048)
+    
+    class Meta:
+        ordering = ["category__label", "name"]
 
 class Account(models.Model):
     code = models.CharField(max_length=16) # CUE-######

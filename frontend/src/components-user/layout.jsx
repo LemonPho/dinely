@@ -1,10 +1,8 @@
-import { useMessagesContext } from "../application-context/messages-context";
+import Messages from "../util-components/messages.jsx";
 import { Link, Outlet } from "react-router-dom";
 import "../styles/global.css";
 
 export default function Layout() {
-  const { errorMessage, successMessage, loadingMessage, resetMessages } = useMessagesContext();
-
   return (
     <div className="app-root">
       {/* NAVBAR */}
@@ -24,54 +22,7 @@ export default function Layout() {
       </header>
 
       <main>
-        {/* ALERTAS DE MENSAJES */}
-        <div className="alert-container">
-          {errorMessage && (
-            <div
-              className="alert alert-danger my-2 alert-positioning d-flex align-items-center"
-              style={{ whiteSpace: "pre-line" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                resetMessages();
-              }}
-            >
-              {errorMessage}
-              <button className="ms-auto btn btn-link link-no-decorations p-0">
-                <h4 aria-hidden="true">&times;</h4>
-              </button>
-            </div>
-          )}
-          {successMessage && (
-            <div
-              className="alert alert-success my-2 alert-positioning d-flex align-items-center"
-              style={{ whiteSpace: "pre-line" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                resetMessages();
-              }}
-            >
-              {successMessage}
-              <button className="ms-auto btn btn-link link-no-decorations p-0">
-                <h4 aria-hidden="true">&times;</h4>
-              </button>
-            </div>
-          )}
-          {loadingMessage && (
-            <div
-              className="alert alert-secondary my-2 alert-positioning d-flex align-items-center"
-              style={{ whiteSpace: "pre-line" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                resetMessages();
-              }}
-            >
-              {loadingMessage}
-              <button className="ms-auto btn btn-link link-no-decorations p-0">
-                <h4 aria-hidden="true">&times;</h4>
-              </button>
-            </div>
-          )}
-        </div>
+        <Messages />
 
         {/* CONTENIDO DE LA PÁGINA ACTUAL */}
         <Outlet />

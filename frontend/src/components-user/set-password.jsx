@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useMessagesContext } from "../application-context/messages-context";
-import { submitSetPassword } from "../fetch/Authentication";
+import { submitSetPassword } from "../fetch/authentication";
 import "../styles/global.css";
 
 export default function SetPassword() {

@@ -5,6 +5,7 @@ from backend.views.admin import users
 from backend.views.authentication import authentication
 
 
+from backend.views.admin.plates import create_plate_category, edit_plate_category, delete_plate_category, get_plate_categories, create_plate, edit_plate, delete_plate, get_plates
 from backend.views.admin.users import create_user
 from .views.authentication.authentication import get_csrf_token, register, login_view, get_current_user, set_password
 
@@ -12,9 +13,19 @@ urlpatterns = [
     path("admin/create-user/", users.create_user),
     path("admin/list-users/", users.list_users),
 
+    path("admin/create-plate-category/", create_plate_category),
+    path("admin/edit-plate-category/", edit_plate_category),
+    path("admin/delete-plate-category/", delete_plate_category),
+    path("admin/get-plate-categories/", get_plate_categories),
+    path("admin/create-plate/", create_plate),
+    path("admin/edit-plate/", edit_plate),
+    path("admin/delete-plate/", delete_plate),
+    path("admin/get-plates/", get_plates),
+
     path("authentication/csrf/", authentication.get_csrf_token),
     path("authentication/register/", authentication.register),
     path("authentication/login/", authentication.login_view),
     path("authentication/set-password/", authentication.set_password),
+
     path("user/get-current-user/", authentication.get_current_user),
 ]
