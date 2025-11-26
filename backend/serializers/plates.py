@@ -49,6 +49,14 @@ class AdminCreatePlateSerializer(serializers.ModelSerializer):
         plate = Plate(**validated_data)
         plate.save()
         return plate
+    
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.price = validated_data.get('price', instance.price)
+        instance.category = validated_data.get('category', instance.category)
+        instance.description = validated_data.get('description', instance.description)
+        instance.save()
+        return instance
 
 class ReadPlateSerializer(serializers.ModelSerializer):
     category = ReadPlateCategorySerializer(read_only=True)

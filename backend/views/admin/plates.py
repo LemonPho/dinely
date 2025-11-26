@@ -113,6 +113,100 @@ def create_plate(request):
 
     return JsonResponse(serializer.data, status=201)
 
+def edit_plate(request):
+    if not request.method == "POST":
+        return HttpResponse(status=405)
+
+    if not request.user.is_authenticated or not request.user.is_admin:
+        return HttpResponse(status=401)
+
+    data = json.loads(request.body)
+    plate_id = data.get("id", False)
+
+    if not plate_id:
+        return HttpResponse(status=400)
+
+    # Validar que el platillo existe
+    try:
+        plate = Plate.objects.get(id=plate_id)
+    except Plate.DoesNotExist:
+        return HttpResponse(status=404)
+
+    # Validar los datos usando el mismo validador que create_plate
+    response = validate_create_plate(data)
+
+    if not response["okay"]:
+        response.pop("okay")
+        return JsonResponse(response, status=400)
+
+    # Actualizar el platillo usando el serializer
+    serializer = AdminCreatePlateSerializer(plate, data=data, partial=True)
+    if not serializer.is_valid():
+        print(serializer.errors)
+        return JsonResponse(serializer.errors, status=400)
+
+    updated_plate = serializer.save()
+
+    # Después de usar el serializer de actualización, usar el de lectura
+    serializer = ReadPlateSerializer(updated_plate)
+
+    return JsonResponse(serializer.data, status=201)
+
+def delete_plate_category(request):
+    if not request.method == "POST":
+        return HttpResponse(status=405)
+
+    if not request.user.is_authenticated or not request.user.is_admin:
+        return HttpResponse(status=401)
+
+    data = json.loads(request.body)
+    category_id = data.get("id", False)
+
+    if not category_id:
+        return HttpResponse(status=400)
+
+    # Validar que la categoría existe
+    try:
+        category = PlateCategory.objects.get(id=category_id)
+    except PlateCategory.DoesNotExist:
+        return HttpResponse(status=404)
+
+    # Verificar si hay platillos usando esta categoría
+    plates_using_category = Plate.objects.filter(category=category)
+    if plates_using_category.exists():
+        return JsonResponse({
+            "error": "No se puede eliminar la categoría porque hay platillos que la están usando"
+        }, status=400)
+
+    # Eliminar la categoría
+    category.delete()
+
+    return HttpResponse(status=201)
+
+def delete_plate(request):
+    if not request.method == "POST":
+        return HttpResponse(status=405)
+
+    if not request.user.is_authenticated or not request.user.is_admin:
+        return HttpResponse(status=401)
+
+    data = json.loads(request.body)
+    plate_id = data.get("id", False)
+
+    if not plate_id:
+        return HttpResponse(status=400)
+
+    # Validar que el platillo existe
+    try:
+        plate = Plate.objects.get(id=plate_id)
+    except Plate.DoesNotExist:
+        return HttpResponse(status=404)
+
+    # Eliminar el platillo
+    plate.delete()
+
+    return HttpResponse(status=201)
+
 def get_plates(request):
     if not request.method == "GET":
         return HttpResponse(status=405)

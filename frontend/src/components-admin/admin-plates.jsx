@@ -6,7 +6,7 @@ import Dropdown from "../util-components/Dropdown.jsx";
 import Messages from "../util-components/messages.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
-import { createPlateCategory, getPlateCategories, createPlate, getPlates, editPlateCategory } from "../fetch/Admin.jsx";
+import { createPlateCategory, getPlateCategories, createPlate, getPlates, editPlateCategory, editPlate, deletePlateCategory, deletePlate } from "../fetch/Admin.jsx";
 
 export default function AdminPlatesPage() {
   const { openedModal, openModal, closeModal, openedDropdown, toggleDropdown, closeDropdown } = useOpenersContext();
@@ -48,6 +48,7 @@ export default function AdminPlatesPage() {
   }
 
   async function retrievePlateCategories(){
+    resetMessages();
     const apiResponse = await getPlateCategories();
     if(apiResponse.status === 200){
       setPlateCategories(apiResponse.plateCategores);
@@ -57,6 +58,7 @@ export default function AdminPlatesPage() {
   }
 
   async function retrievePlates() {
+    resetMessages();
     const apiResponse = await getPlates();
     if (apiResponse.status === 200) {
       const platesByCategory = groupPlatesByCategory(apiResponse.plates);
@@ -79,7 +81,60 @@ export default function AdminPlatesPage() {
     openModal(`edit-plate-${plate.id}`);
   }
 
+  async function handleDeletePlate() {
+    resetMessages();
+    if (!plateFormData.id) {
+      return;
+    }
+
+    // Confirmar eliminación
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el platillo "${plateFormData.name}"?`)) {
+      return;
+    }
+
+    const apiResponse = await deletePlate(plateFormData.id);
+
+    if (apiResponse.status === 201) {
+      // Eliminar el platillo del estado local
+      setPlates((prevPlates) => {
+        const updatedPlates = { ...prevPlates };
+        const categoryLabel = plateFormData.category || "Sin categoría";
+        
+        if (updatedPlates[categoryLabel]) {
+          updatedPlates[categoryLabel] = updatedPlates[categoryLabel].filter(
+            (plate) => plate.id !== plateFormData.id
+          );
+          
+          // Si la categoría queda vacía, eliminarla
+          if (updatedPlates[categoryLabel].length === 0) {
+            delete updatedPlates[categoryLabel];
+          }
+        }
+        
+        return updatedPlates;
+      });
+      
+      // Limpiar el formulario y cerrar modal
+      setPlateFormData({
+        id: "",
+        name: "",
+        price: "",
+        category: "",
+        description: "",
+      });
+      setIsEditing(false);
+      setIsCreating(false);
+      closeModal();
+      
+      setSuccessMessage("Platillo eliminado exitosamente");
+    } else {
+      const errorMsg = apiResponse.errorMessage || "Error al eliminar el platillo. Por favor intenta de nuevo.";
+      setErrorMessage(errorMsg);
+    }
+  }
+
   function handleCreatePlateClick() {
+    resetMessages();
     if (plateCategories.length <= 0) {
       setErrorMessage("Asegurate de crear a lo menos una categoría de platillo antes de crear un platillo");
       return;
@@ -110,14 +165,29 @@ export default function AdminPlatesPage() {
     setEditCategoryFormData({ id: category.id, label: category.label });
   }
 
-  function handleDeleteCategory(category) {
-    // TODO: Backend will validate if plates use this category before deletion
+  async function handleDeleteCategory(category) {
+    resetMessages();
+    // Confirmar eliminación
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la categoría "${category.label}"?`)) {
+      return;
+    }
 
-    // Delete category
-    const updatedCategories = plateCategories.filter(cat => cat.id !== category.id);
+    const apiResponse = await deletePlateCategory(category.id);
+    console.log(apiResponse);
 
-    setPlateCategories(updatedCategories);
-    setSuccessMessage("Categoría eliminada exitosamente");
+    if (apiResponse.status === 201) {
+      // Eliminar la categoría del estado local
+      setPlateCategories((prevCategories) => 
+        prevCategories.filter((cat) => cat.id !== category.id)
+      );
+      
+      
+      setSuccessMessage("Categoría eliminada exitosamente");
+    } else if(apiResponse.status === 404){
+      setErrorMessage("No se encontró la categoría, quizá ya se eliminó");
+    } else {
+      setErrorMessage("Error al eliminar la categoría. Verifique que no haya platillos usando esta categoría.");
+    }
   }
 
   function handleCancelCategoryEdit() {
@@ -149,6 +219,7 @@ export default function AdminPlatesPage() {
 
   async function handleSubmitCategory(e) {
     e.preventDefault();
+    resetMessages();
     if (isEditing) {
       const trimmedLabel = (editCategoryFormData.label || "").trim();
       if (!trimmedLabel) {
@@ -199,6 +270,7 @@ export default function AdminPlatesPage() {
 
   async function handleSubmitPlate(e) {
     e.preventDefault();
+    resetMessages();
 
     // Validaciones del lado del cliente
     if (!plateFormData.name.trim()) {
@@ -221,24 +293,56 @@ export default function AdminPlatesPage() {
       return;
     }
 
-    // Llamar a la API
-    const apiResponse = await createPlate(plateFormData);
+    // Determinar si es creación o edición
+    const isEditingPlate = isEditing && plateFormData.id;
+    const apiResponse = isEditingPlate 
+      ? await editPlate(plateFormData)
+      : await createPlate(plateFormData);
 
     if (apiResponse.status === 201) {
-      setSuccessMessage("Platillo creado exitosamente");
+      const updatedPlate = apiResponse.plate;
+      const categoryLabel = updatedPlate.category?.label || "Sin categoría";
       
-      // Agregar el platillo a la lista local
-      const newPlate = apiResponse.plate;
-      const categoryLabel = newPlate.category?.label || "Sin categoría";
-      
-      setPlates((prevPlates) => {
-        const updatedPlates = { ...prevPlates };
-        if (!updatedPlates[categoryLabel]) {
-          updatedPlates[categoryLabel] = [];
-        }
-        updatedPlates[categoryLabel] = [...updatedPlates[categoryLabel], newPlate];
-        return updatedPlates;
-      });
+      if (isEditingPlate) {
+        setSuccessMessage("Platillo actualizado exitosamente");
+        
+        // Actualizar el platillo en la lista local
+        setPlates((prevPlates) => {
+          const updatedPlates = { ...prevPlates };
+          
+          // Buscar y remover el platillo antiguo de cualquier categoría
+          Object.keys(updatedPlates).forEach((cat) => {
+            updatedPlates[cat] = updatedPlates[cat].filter(p => p.id !== updatedPlate.id);
+          });
+          
+          // Agregar el platillo actualizado en su nueva categoría
+          if (!updatedPlates[categoryLabel]) {
+            updatedPlates[categoryLabel] = [];
+          }
+          updatedPlates[categoryLabel].push(updatedPlate);
+          
+          // Limpiar categorías vacías
+          Object.keys(updatedPlates).forEach((cat) => {
+            if (updatedPlates[cat].length === 0) {
+              delete updatedPlates[cat];
+            }
+          });
+          
+          return updatedPlates;
+        });
+      } else {
+        setSuccessMessage("Platillo creado exitosamente");
+        
+        // Agregar el platillo a la lista local
+        setPlates((prevPlates) => {
+          const updatedPlates = { ...prevPlates };
+          if (!updatedPlates[categoryLabel]) {
+            updatedPlates[categoryLabel] = [];
+          }
+          updatedPlates[categoryLabel] = [...updatedPlates[categoryLabel], updatedPlate];
+          return updatedPlates;
+        });
+      }
 
       // Limpiar el formulario y cerrar modal
       setPlateFormData({
@@ -248,11 +352,13 @@ export default function AdminPlatesPage() {
         category: "",
         description: "",
       });
+      setIsEditing(false);
+      setIsCreating(false);
       closeModal();
     } else if (apiResponse.status === 400) {
       // Errores de validación del backend
       const errors = apiResponse.validationErrors;
-      let errorMessage = "Error al crear el platillo:\n";
+      let errorMessage = `Error al ${isEditingPlate ? 'actualizar' : 'crear'} el platillo:\n`;
       
       if (errors.name) {
         errorMessage += `- ${errors.name[0]}\n`;
@@ -269,7 +375,7 @@ export default function AdminPlatesPage() {
       
       setErrorMessage(errorMessage);
     } else {
-      setErrorMessage("Hubo un error al crear el platillo. Por favor intenta de nuevo.");
+      setErrorMessage(`Hubo un error al ${isEditingPlate ? 'actualizar' : 'crear'} el platillo. Por favor intenta de nuevo.`);
     }
   }
 
@@ -480,7 +586,7 @@ export default function AdminPlatesPage() {
         </div>
       </Modal>
 
-      <Modal isOpen={openedModal === `edit-plate-${isEditing?.id}` || openedModal === "create-plate"}>
+      <Modal isOpen={openedModal === `edit-plate-${plateFormData.id}` || openedModal === "create-plate"}>
         <div className="admin-modal">
           <div className="admin-modal-header">
             <h2>{isCreating ? "Crear Nuevo Platillo" : `Editar Platillo`}</h2>
@@ -576,6 +682,23 @@ export default function AdminPlatesPage() {
             </div>
 
             <div className="admin-form-actions full-width">
+              {isEditing && plateFormData.id && (
+                <button
+                  type="button"
+                  onClick={handleDeletePlate}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    marginRight: "auto",
+                  }}
+                >
+                  Eliminar
+                </button>
+              )}
               <button
                 type="button"
                 className="admin-btn-secondary"
@@ -584,7 +707,7 @@ export default function AdminPlatesPage() {
                 Cancelar
               </button>
               <button type="submit" className="admin-btn-primary">
-                Guardar Cambios
+                {isCreating ? "Crear" : "Guardar Cambios"}
               </button>
             </div>
           </form>

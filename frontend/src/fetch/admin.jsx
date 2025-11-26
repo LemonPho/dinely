@@ -193,6 +193,49 @@ export async function createPlate(plateData) {
   return result;
 }
 
+export async function editPlate(plateData) {
+  let result = {
+    error: false,
+    status: null,
+    plate: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/edit-plate/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: plateData.id,
+        name: plateData.name,
+        price: parseFloat(plateData.price),
+        category: plateData.category,
+        description: plateData.description,
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.plate = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
 export async function getPlates() {
   let response = {
     plates: [],
@@ -215,4 +258,74 @@ export async function getPlates() {
   }
 
   return response;
+}
+
+export async function deletePlateCategory(categoryId) {
+  let result = {
+    error: false,
+    status: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/delete-plate-category/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: categoryId
+      }),
+    });
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function deletePlate(plateId) {
+  let result = {
+    error: false,
+    status: null,
+    errorMessage: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/delete-plate/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: plateId
+      }),
+    });
+
+    // Solo intentar parsear JSON si el status no es 201 (éxito sin contenido)
+    let apiResult = null;
+    if (apiResponse.status !== 201) {
+      try {
+        apiResult = await apiResponse.json();
+        result.errorMessage = apiResult?.error || "Error al eliminar el platillo";
+      } catch (e) {
+        result.errorMessage = "Error al eliminar el platillo";
+      }
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
 }
