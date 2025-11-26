@@ -6,7 +6,7 @@ from backend.serializers.users import UserReadSerializer
 
 from backend.serializers.users import AdminUserCreateSerializer
 
-from backend.views.admin.validators import validate_create_user
+from backend.views.admin.validators import validate_create_user, validate_edit_user
 from backend.views.authentication.utils import generate_password_setup_token
 from backend.email_service import send_password_setup_email
 
@@ -40,7 +40,10 @@ def create_user(request):
     # Enviar email con link para establecer contraseña
     send_password_setup_email(user, uid, token, request)
     
-    return HttpResponse(status=201)
+    # Después de crear el usuario, usar el serializer de lectura para la respuesta
+    serializer = UserReadSerializer(user)
+    
+    return JsonResponse(serializer.data, status=201)
 
 def list_users(request):
     # Solo permitir a administradores autenticados
@@ -52,3 +55,73 @@ def list_users(request):
 
     serializer = UserReadSerializer(users, many=True)
     return JsonResponse(serializer.data, safe=False)
+
+def edit_user(request):
+    if not request.method == "POST":
+        return HttpResponse(status=405)
+
+    if not request.user.is_authenticated or not request.user.is_admin:
+        return HttpResponse(status=401)
+
+    data = json.loads(request.body)
+    user_id = data.get("id", False)
+
+    if not user_id:
+        return HttpResponse(status=400)
+
+    # Validar que el usuario existe
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return HttpResponse(status=404)
+
+    # Validar los datos usando el validador
+    response = validate_edit_user(data)
+
+    if not response["okay"]:
+        response.pop("okay")
+        response.pop("user", None)
+        return JsonResponse(response, status=400)
+
+    # Actualizar el usuario usando el serializer
+    serializer = AdminUserCreateSerializer(user, data=data, partial=True)
+    if not serializer.is_valid():
+        print(serializer.errors)
+        return JsonResponse(serializer.errors, status=400)
+
+    updated_user = serializer.save()
+
+    # Después de usar el serializer de actualización, usar el de lectura
+    serializer = UserReadSerializer(updated_user)
+
+    return JsonResponse(serializer.data, status=201)
+
+def delete_user(request):
+    if not request.method == "POST":
+        return HttpResponse(status=405)
+
+    if not request.user.is_authenticated or not request.user.is_admin:
+        return HttpResponse(status=401)
+
+    data = json.loads(request.body)
+    user_id = data.get("id", False)
+
+    if not user_id:
+        return HttpResponse(status=400)
+
+    # Validar que el usuario existe
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return HttpResponse(status=404)
+
+    # Prevenir que el usuario elimine su propia cuenta
+    if user.id == request.user.id:
+        return HttpResponse(status=400)
+
+    # Eliminar el usuario
+    user.delete()
+
+    return HttpResponse(status=201)

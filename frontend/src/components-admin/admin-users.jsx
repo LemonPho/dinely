@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
+import { useUserContext } from "../application-context/user-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
-import { createUser, fetchUsers } from "../fetch/Admin.jsx";
+import { createUser, editUser, deleteUser, fetchUsers } from "../fetch/Admin.jsx";
 
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 
@@ -11,26 +12,13 @@ import { useMessagesContext } from "../application-context/messages-context.jsx"
 export default function AdminUsersPage() {
   const { openedModal, openModal, closeModal } = useOpenersContext();
   const { setErrorMessage, setSuccessMessage, setLoadingMessage, resetMessages } = useMessagesContext();
+  const { user } = useUserContext();
 
   const [users, setUsers] = useState([]);
-  // Cargar usuarios desde el backend
-useEffect(() => {
-  async function loadUsers() {
-    const apiResponse = await fetchUsers();
-    console.log("Usuarios cargados:", apiResponse.users);
-    if (apiResponse.status === 200) {
-      setUsers(apiResponse.users);
-    }
-  }
-
-  loadUsers();
-}, []);
-
-
-
-  const [isEditing, setIsEditing] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
+    id: "",
     name: "",
     email: "",
     is_admin: false,
@@ -56,6 +44,7 @@ useEffect(() => {
     setIsEditing(false);
     setIsCreating(true);
     setFormData({
+      id: "",
       name: "",
       email: "",
       is_admin: false,
@@ -83,22 +72,73 @@ useEffect(() => {
     }
   }
 
+  async function handleDeleteUser() {
+    resetMessages();
+    if (!formData.id) {
+      return;
+    }
+
+    if (user.id == formData.id){
+      setErrorMessage("No puedes eliminar a tu mismo.");
+      return;
+    }
+
+    // Confirmar eliminación
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el usuario "${formData.name}"?`)) {
+      return;
+    }
+
+    const apiResponse = await deleteUser(formData.id);
+
+    if (apiResponse.status === 201) {
+      // Eliminar el usuario del estado local
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== formData.id));
+      
+      // Limpiar el formulario y cerrar modal
+      setFormData({
+        id: "",
+        name: "",
+        email: "",
+        is_admin: false,
+        is_waiter: false,
+        is_kitchen: false,
+      });
+      setIsEditing(false);
+      setIsCreating(false);
+      closeModal();
+      
+      setSuccessMessage("Usuario eliminado exitosamente");
+    } else {
+      const errorMsg = apiResponse.errorMessage || "Error al eliminar el usuario. Por favor intenta de nuevo.";
+      setErrorMessage(errorMsg);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     resetMessages();
 
     setLoadingMessage("Cargando...");
-    const userResponse = await createUser(formData, isCreating, isEditing);
+    
+    // Determinar si es creación o edición
+    const isEditingUser = isEditing && formData.id;
+    const userResponse = isEditingUser 
+      ? await editUser(formData)
+      : await createUser(formData);
+    
     setLoadingMessage(false);
 
-    console.log(userResponse);
-
     if(userResponse.status === 500 || userResponse.error){
-      setErrorMessage("Hubo un error al intentar crear el usuario");
+      setErrorMessage("Hubo un error al intentar procesar la solicitud");
       return;
     }
     
     if(userResponse.status === 400){
+      if(userResponse.valid_id === false){
+        setErrorMessage("El usuario no existe");
+        return;
+      }
+
       if(!userResponse.name){
         setErrorMessage("Asegura que hayas ingresado el nombre completo del empleado");
         return;
@@ -117,33 +157,21 @@ useEffect(() => {
       setErrorMessage("Verifica que la informacion sea correcta e intente de nuevo")
     } else if(userResponse.status === 201){
       if(isCreating){
-        const newUser = {
-          id: -1,
-          name: formData.name,
-          email: formData.email,
-          is_admin: formData.is_admin,
-          is_waiter: formData.is_waiter,
-          is_kitchen: formData.is_kitchen,
-          date_created: new Date().toISOString().split('T')[0],
-        };
-        setUsers([...users, newUser]);
+        // Usar el usuario creado desde la respuesta
+        if(userResponse.user){
+          setUsers([...users, userResponse.user]);
+        }
+        setSuccessMessage("Usuario creado con exito! El usuario debe revisar su correo para crear la contraseña");
       } else {
-        // Editar usuario existente
-        const updatedUsers = users.map((user) =>
-          user.id === isEditing.id
-            ? {
-                ...user,
-                name: formData.name,
-                email: formData.email,
-                is_admin: formData.is_admin,
-                is_waiter: formData.is_waiter,
-                is_kitchen: formData.is_kitchen,
-              }
-            : user
-        );
-        setUsers(updatedUsers);
+        // Editar usuario existente - use the updated user from response
+        if(userResponse.user){
+          const updatedUsers = users.map((user) =>
+            user.id === userResponse.user.id ? userResponse.user : user
+          );
+          setUsers(updatedUsers);
+        }
+        setSuccessMessage("Usuario actualizado con exito!");
       }
-      setSuccessMessage("Usuario creado con exito! El usuario debe revisar su correo para crear la contraseña");
     } else {
       setErrorMessage(`Error desconocido con codigo de estatus: ${userResponse.status}`);
     }
@@ -174,6 +202,19 @@ useEffect(() => {
       return "role-customer";
     }
   }
+
+  // Cargar usuarios desde el backend
+  useEffect(() => {
+    async function loadUsers() {
+      const apiResponse = await fetchUsers();
+      console.log("Usuarios cargados:", apiResponse.users);
+      if (apiResponse.status === 200) {
+        setUsers(apiResponse.users);
+      }
+    }
+
+    loadUsers();
+  }, []);
 
   return (
     <div className="admin-page">
@@ -219,7 +260,7 @@ useEffect(() => {
         </div>
       )}
       
-      <Modal isOpen={openedModal === `edit-user-${isEditing?.id}` || openedModal === "create-user"}>
+      <Modal isOpen={openedModal === `edit-user-${formData.id}` || openedModal === "create-user"}>
         <div className="admin-modal">
           <div className="admin-modal-header">
             <h2>{isCreating ? "Crear Nuevo Usuario" : `Editar Usuario`}</h2>
@@ -297,6 +338,23 @@ useEffect(() => {
             </div>
 
             <div className="admin-form-actions full-width">
+              {isEditing && formData.id && user && formData.id !== user.id && (
+                <button
+                  type="button"
+                  onClick={handleDeleteUser}
+                  style={{
+                    padding: "0.75rem 1.5rem",
+                    background: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    marginRight: "auto",
+                  }}
+                >
+                  Eliminar
+                </button>
+              )}
               <button
                 type="button"
                 className="admin-btn-secondary"
@@ -305,7 +363,7 @@ useEffect(() => {
                 Cancelar
               </button>
               <button type="submit" className="admin-btn-primary">
-                Guardar Cambios
+                {isCreating ? "Crear" : "Guardar Cambios"}
               </button>
             </div>
           </form>

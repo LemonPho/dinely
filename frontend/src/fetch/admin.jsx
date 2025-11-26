@@ -1,25 +1,18 @@
 import { getCookie } from "./authentication";
 
-export async function createUser(formData, creating, editing) {
-  console.log("starting fetch function");
+export async function createUser(formData) {
   let result = {
     error: false,
     status: null,
+    user: null,
     name: null,
     email: null,
     user_exists: null,
   };
 
   try {
-    let fetchUrl;
-    if (creating) {
-      fetchUrl = '/api/admin/create-user/';
-    } else {
-      fetchUrl = '/api/admin/edit-user/';
-    }
-
     const csrftoken = getCookie("csrftoken");
-    const apiResponse = await fetch(fetchUrl, {
+    const apiResponse = await fetch('/api/admin/create-user/', {
       method: "POST",
       credentials: "include",
       headers: {
@@ -35,13 +28,65 @@ export async function createUser(formData, creating, editing) {
       }),
     });
 
-    const apiResult = apiResponse.status !== 201 ? await apiResponse.json() : null;
+    const apiResult = await apiResponse.json();
 
-    console.log(apiResult);
+    if (apiResponse.status === 201) {
+      result.user = apiResult;
+    } else {
+      result.name = apiResult.name !== undefined ? apiResult.name : null;
+      result.email = apiResult.email !== undefined ? apiResult.email : null;
+      result.user_exists = apiResult.user_exists !== undefined ? apiResult.user_exists : null;
+    }
 
-    result.name = apiResult ? apiResult.name : null;
-    result.email = apiResult ? apiResult.email : null;
-    result.user_exists = apiResult ? apiResult.user_exists : null;
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function editUser(formData) {
+  let result = {
+    error: false,
+    status: null,
+    user: null,
+    name: null,
+    email: null,
+    user_exists: null,
+    valid_id: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/edit-user/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: formData.id,
+        email: formData.email,
+        name: formData.name,
+        is_admin: formData.is_admin,
+        is_waiter: formData.is_waiter,
+        is_kitchen: formData.is_kitchen,
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.user = apiResult;
+    } else {
+      result.name = apiResult.name !== undefined ? apiResult.name : null;
+      result.email = apiResult.email !== undefined ? apiResult.email : null;
+      result.user_exists = apiResult.user_exists !== undefined ? apiResult.user_exists : null;
+      result.valid_id = apiResult.valid_id !== undefined ? apiResult.valid_id : null;
+    }
 
     result.error = apiResponse.status === 500;
     result.status = apiResponse.status;
@@ -320,6 +365,35 @@ export async function deletePlate(plateId) {
         result.errorMessage = "Error al eliminar el platillo";
       }
     }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function deleteUser(userId) {
+  let result = {
+    error: false,
+    status: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/delete-user/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: userId
+      }),
+    });
 
     result.error = apiResponse.status === 500;
     result.status = apiResponse.status;

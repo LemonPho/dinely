@@ -99,3 +99,51 @@ def validate_edit_plate_category(data):
             pass  # No existe, está bien
 
     return result
+
+def validate_edit_user(data):
+    User = get_user_model()
+    
+    result = {
+        "valid_id": True,
+        "name": True,
+        "email": True,
+        "user_exists": False,
+        "user": None,
+        "okay": True
+    }
+
+    user_id = data.get("id", False)
+    email = data.get("email", False)
+    name = data.get("name", False)
+
+    if not user_id:
+        result["valid_id"] = False
+        result["okay"] = False
+        return result
+
+    # Validar que el usuario existe
+    try:
+        user = User.objects.get(id=user_id)
+        result["user"] = user
+    except User.DoesNotExist:
+        result["valid_id"] = False
+        result["okay"] = False
+        return result
+
+    # Validar nombre
+    if not name or not name.strip():
+        result["name"] = False
+        result["okay"] = False
+
+    # Validar email
+    if not email or not email.strip():
+        result["email"] = False
+        result["okay"] = False
+    else:
+        # Validar que el email no esté en uso por otro usuario
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user and existing_user.id != user_id:
+            result["user_exists"] = True
+            result["okay"] = False
+
+    return result

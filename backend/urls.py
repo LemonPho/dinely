@@ -6,11 +6,13 @@ from backend.views.authentication import authentication
 
 
 from backend.views.admin.plates import create_plate_category, edit_plate_category, delete_plate_category, get_plate_categories, create_plate, edit_plate, delete_plate, get_plates
-from backend.views.admin.users import create_user
+from backend.views.admin.users import create_user, edit_user, delete_user
 from .views.authentication.authentication import get_csrf_token, register, login_view, get_current_user, set_password
 
 urlpatterns = [
     path("admin/create-user/", users.create_user),
+    path("admin/edit-user/", users.edit_user),
+    path("admin/delete-user/", users.delete_user),
     path("admin/list-users/", users.list_users),
 
     path("admin/create-plate-category/", create_plate_category),

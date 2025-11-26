@@ -35,6 +35,15 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         #No permite el empleado entrar a su cuenta hasta que haga una contraseña
         #El empleado recibe un correo
         return user
+    
+    def update(self, instance, validated_data):
+        instance.email = validated_data.get('email', instance.email)
+        instance.name = validated_data.get('name', instance.name)
+        instance.is_admin = validated_data.get('is_admin', instance.is_admin)
+        instance.is_waiter = validated_data.get('is_waiter', instance.is_waiter)
+        instance.is_kitchen = validated_data.get('is_kitchen', instance.is_kitchen)
+        instance.save()
+        return instance
 
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
