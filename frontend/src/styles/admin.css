@@ -1103,4 +1103,43 @@
     grid-template-columns: 1fr;
   }
 }
+.admin-tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));  
+    gap: 2rem;  
+    padding: 1rem;
+    width: 100%;
+}
+.admin-table-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform .15s ease;
+}
+
+.admin-table-card:hover {
+    transform: translateY(-4px);
+}
+.admin-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .75rem;
+}
+
+.admin-table-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.admin-content-card {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
 

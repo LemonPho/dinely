@@ -1,16 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
 import { createUser } from "../fetch/Admin.jsx";
+import { fetchUsers } from "../fetch/AdminUsers.js";
+
 import { useMessagesContext } from "../application-context/messages-context.jsx";
+
 
 export default function AdminUsersPage() {
   const { openedModal, openModal, closeModal } = useOpenersContext();
   const { setErrorMessage, setSuccessMessage, setLoadingMessage, resetMessages } = useMessagesContext();
 
   const [users, setUsers] = useState([]);
+  // Cargar usuarios desde el backend
+useEffect(() => {
+  async function loadUsers() {
+    const data = await fetchUsers();
+    console.log("Usuarios cargados:", data);
+    setUsers(data);
+  }
+
+  loadUsers();
+}, []);
+
+
 
   const [isEditing, setIsEditing] = useState({});
   const [isCreating, setIsCreating] = useState(false);
