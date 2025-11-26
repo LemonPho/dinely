@@ -329,3 +329,27 @@ export async function deletePlate(plateId) {
 
   return result;
 }
+
+export async function fetchUsers() {
+  let response = {
+    users: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/list-users/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.users = apiResponse.status === 200 ? apiResult : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
