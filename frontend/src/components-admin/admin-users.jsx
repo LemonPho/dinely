@@ -3,8 +3,7 @@ import { useOpenersContext } from "../application-context/openers-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
-import { createUser } from "../fetch/Admin.jsx";
-import { fetchUsers } from "../fetch/AdminUsers.js";
+import { createUser, fetchUsers } from "../fetch/Admin.jsx";
 
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 
@@ -17,9 +16,11 @@ export default function AdminUsersPage() {
   // Cargar usuarios desde el backend
 useEffect(() => {
   async function loadUsers() {
-    const data = await fetchUsers();
-    console.log("Usuarios cargados:", data);
-    setUsers(data);
+    const apiResponse = await fetchUsers();
+    console.log("Usuarios cargados:", apiResponse.users);
+    if (apiResponse.status === 200) {
+      setUsers(apiResponse.users);
+    }
   }
 
   loadUsers();
