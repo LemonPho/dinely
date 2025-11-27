@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 
-from backend.models import PlateCategory
+from backend.models import PlateCategory, TableArea
 
 
 def validate_create_user(user):
@@ -145,5 +145,89 @@ def validate_edit_user(data):
         if existing_user and existing_user.id != user_id:
             result["user_exists"] = True
             result["okay"] = False
+
+    return result
+
+def validate_create_table(data):
+    result = {
+        "valid_code": True,
+        "valid_capacity": True,
+        "valid_state": True,
+        "valid_area": True,
+        "data": data,
+        "okay": True
+    }
+
+    code = data.get("code", False)
+    capacity = data.get("capacity", False)
+    state = data.get("state", False)
+    area = data.get("area", False)
+
+    if not code or not code.strip():
+        result["valid_code"] = False
+        result["okay"] = False
+
+    if not capacity or capacity <= 0:
+        result["valid_capacity"] = False
+        result["okay"] = False
+
+    if not state or not state.strip():
+        result["valid_state"] = False
+        result["okay"] = False
+
+    if not area:
+        result["valid_area"] = False
+        result['okay'] = False
+    else:
+        # Validar que el área existe por label
+        try:
+            TableArea.objects.get(label=area)
+        except TableArea.DoesNotExist:
+            result["valid_area"] = False
+            result['okay'] = False
+
+    return result
+
+def validate_edit_table_area(data):
+    result = {
+        "valid_id": True,
+        "valid_label": True,
+        "area_exists": True,
+        "label_available": True,
+        "area": None,
+        "okay": True
+    }
+
+    area_id = data.get("id", False)
+    new_label = data.get("label", False)
+
+    if not area_id:
+        result["valid_id"] = False
+        result["okay"] = False
+        return result
+
+    if not new_label or not new_label.strip():
+        result["valid_label"] = False
+        result["okay"] = False
+        return result
+
+    # Validar que el área existe
+    try:
+        area = TableArea.objects.get(id=area_id)
+        result["area"] = area
+    except TableArea.DoesNotExist:
+        result["area_exists"] = False
+        result["okay"] = False
+        return result
+
+    # Validar que el nuevo label no existe (si es diferente al actual)
+    if area.label != new_label.strip():
+        try:
+            existing_area = TableArea.objects.get(label=new_label.strip())
+            if existing_area.id != area_id:
+                result["label_available"] = False
+                result["okay"] = False
+        except TableArea.DoesNotExist:
+            pass  # No existe, está bien
 
     return result

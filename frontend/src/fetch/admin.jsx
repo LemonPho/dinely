@@ -427,3 +427,280 @@ export async function fetchUsers() {
 
   return response;
 }
+
+export async function createTableArea(area) {
+  let result = {
+    error: false,
+    status: null,
+    area: {},
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/create-table-area/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        label: area
+      }),
+    });
+
+    const apiResult = apiResponse.status === 201 ? await apiResponse.json() : null;
+
+    result.area = apiResult ? apiResult.area : null;
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function editTableArea(areaId, label) {
+  let result = {
+    error: false,
+    status: null,
+    tableAreas: [],
+    tables: [],
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/edit-table-area/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: areaId,
+        label: label
+      }),
+    });
+
+    const apiResult = apiResponse.status === 201 ? await apiResponse.json() : null;
+
+    if (apiResult) {
+      result.tableAreas = apiResult.table_areas || [];
+      result.tables = apiResult.tables || [];
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function getTableAreas() {
+  let response = {
+    tableAreas: [],
+    status: 0,
+    error: false,
+  }
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-table-areas/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.tableAreas = apiResponse.status === 200 ? apiResult.table_areas : undefined;
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function createTable(tableData) {
+  let result = {
+    error: false,
+    status: null,
+    table: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/create-table/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        code: tableData.code,
+        capacity: parseInt(tableData.capacity),
+        state: tableData.state,
+        area: tableData.area,
+        notes: tableData.notes || "",
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.table = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function editTable(tableData) {
+  let result = {
+    error: false,
+    status: null,
+    table: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/edit-table/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: tableData.id,
+        code: tableData.code,
+        capacity: parseInt(tableData.capacity),
+        state: tableData.state,
+        area: tableData.area,
+        notes: tableData.notes || "",
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.table = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function getTables() {
+  let response = {
+    tables: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-tables/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.tables = apiResponse.status === 200 ? apiResult.tables : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function deleteTableArea(areaId) {
+  let result = {
+    error: false,
+    status: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/delete-table-area/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: areaId
+      }),
+    });
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function deleteTable(tableId) {
+  let result = {
+    error: false,
+    status: null,
+    errorMessage: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/delete-table/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: tableId
+      }),
+    });
+
+    // Solo intentar parsear JSON si el status no es 201 (éxito sin contenido)
+    let apiResult = null;
+    if (apiResponse.status !== 201) {
+      try {
+        apiResult = await apiResponse.json();
+        result.errorMessage = apiResult?.error || "Error al eliminar la mesa";
+      } catch (e) {
+        result.errorMessage = "Error al eliminar la mesa";
+      }
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}

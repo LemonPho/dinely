@@ -66,7 +66,7 @@ class User(AbstractUser):
 
 #Misma razon de existencia que PlateCategory
 class TableArea(models.Model):
-    label = models.CharField(max_length=64)
+    label = models.CharField(max_length=64, unique=True)
 
 class Table(models.Model):
     code = models.CharField(max_length=64)
