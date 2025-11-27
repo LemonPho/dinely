@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import datetime
 
-from backend.models import PlateCategory, TableArea
+from backend.models import PlateCategory, TableArea, Table
 
 
 def validate_create_user(user):
@@ -229,5 +231,87 @@ def validate_edit_table_area(data):
                 result["okay"] = False
         except TableArea.DoesNotExist:
             pass  # No existe, está bien
+
+    return result
+
+def validate_create_reservation(data):
+    result = {
+        "valid_name": True,
+        "valid_email": True,
+        "valid_phone_number": True,
+        "valid_date_time": True,
+        "valid_table": True,
+        "valid_amount_people": True,
+        "valid_state": True,
+        "valid_notes": True,
+        "data": data,
+        "okay": True
+    }
+
+    name = data.get("name", False)
+    email = data.get("email", False)
+    phone_number = data.get("phone_number", False)
+    date_time = data.get("date_time", False)
+    table = data.get("table", False)
+    amount_people = data.get("amount_people", False)
+    state = data.get("state", False)
+    notes = data.get("notes", False)
+
+    # Validate name (required)
+    if not name or not name.strip():
+        result["valid_name"] = False
+        result["okay"] = False
+
+    # Validate email (optional, but if provided should be valid format)
+    if email:
+        # Basic email validation
+        if "@" not in email or "." not in email.split("@")[1]:
+            result["valid_email"] = False
+            result["okay"] = False
+
+    # Validate phone_number (optional, no validation needed if provided)
+
+    # Validate date_time (required, valid datetime, not in past)
+    if not date_time:
+        result["valid_date_time"] = False
+        result["okay"] = False
+    else:
+        try:
+            # Parse the datetime string
+            if isinstance(date_time, str):
+                dt = datetime.fromisoformat(date_time.replace('Z', '+00:00'))
+            else:
+                dt = date_time
+            
+            # Check if datetime is in the past
+            if dt < timezone.now():
+                result["valid_date_time"] = False
+                result["okay"] = False
+        except (ValueError, TypeError):
+            result["valid_date_time"] = False
+            result["okay"] = False
+
+    # Validate table (optional, but if provided must exist by code)
+    if table:
+        try:
+            Table.objects.get(code=table)
+        except Table.DoesNotExist:
+            result["valid_table"] = False
+            result["okay"] = False
+
+    # Validate amount_people (required, > 0)
+    if not amount_people or amount_people <= 0:
+        result["valid_amount_people"] = False
+        result["okay"] = False
+
+    # Validate state (required, not empty)
+    if not state or not state.strip():
+        result["valid_state"] = False
+        result["okay"] = False
+
+    # Validate notes (optional, max length 2048 if provided)
+    if notes and len(notes) > 2048:
+        result["valid_notes"] = False
+        result["okay"] = False
 
     return result

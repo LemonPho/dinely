@@ -704,3 +704,145 @@ export async function deleteTable(tableId) {
 
   return result;
 }
+
+export async function createReservation(reservationData) {
+  let result = {
+    error: false,
+    status: null,
+    reservation: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/create-reservation/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: reservationData.name,
+        email: reservationData.email || "",
+        phone_number: reservationData.phone_number || "",
+        date_time: reservationData.date_time,
+        table: reservationData.table || null,
+        amount_people: parseInt(reservationData.amount_people),
+        state: reservationData.state,
+        notes: reservationData.notes || "",
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.reservation = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function editReservation(reservationData) {
+  let result = {
+    error: false,
+    status: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/edit-reservation/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: reservationData.id,
+        name: reservationData.name,
+        email: reservationData.email || "",
+        phone_number: reservationData.phone_number || "",
+        date_time: reservationData.date_time,
+        table: reservationData.table || null,
+        amount_people: parseInt(reservationData.amount_people),
+        state: reservationData.state,
+        notes: reservationData.notes || "",
+      }),
+    });
+
+    if (apiResponse.status === 400) {
+      const apiResult = await apiResponse.json();
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function deleteReservation(reservationId) {
+  let result = {
+    error: false,
+    status: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch('/api/admin/delete-reservation/', {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: reservationId
+      }),
+    });
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+export async function getReservations() {
+  let response = {
+    reservations: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-reservations/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.reservations = apiResponse.status === 200 ? apiResult.reservations : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}

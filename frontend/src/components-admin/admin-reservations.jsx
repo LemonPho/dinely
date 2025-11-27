@@ -1,241 +1,273 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
+import { useMessagesContext } from "../application-context/messages-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
+import { createReservation, editReservation, deleteReservation, getReservations, getTables } from "../fetch/Admin.jsx";
+import Messages from "../util-components/messages.jsx";
 
 export default function AdminReservationsPage() {
   const { openedModal, openModal, closeModal, openedDropdown, toggleDropdown, closeDropdown } = useOpenersContext();
+  const { setErrorMessage, setSuccessMessage, setLoadingMessage, resetMessages } = useMessagesContext();
 
-  // Mock data - no API calls
-  const [reservations, setReservations] = useState([
-    {
-      id: 1,
-      code: "DIN-ABC123",
-      customerName: "Juan Pérez",
-      email: "juan.perez@email.com",
-      phone: "55 1234 5678",
-      date: "2024-01-20",
-      time: "19:00",
-      partySize: 4,
-      zone: "interior",
-      tableNumber: "5",
-      status: "active",
-      comments: "Mesa cerca de la ventana",
-    },
-    {
-      id: 2,
-      code: "DIN-XYZ789",
-      customerName: "María García",
-      email: "maria.garcia@email.com",
-      phone: "55 9876 5432",
-      date: "2024-01-20",
-      time: "19:30",
-      partySize: 2,
-      zone: "patio",
-      tableNumber: "12",
-      status: "active",
-      comments: "",
-    },
-    {
-      id: 3,
-      code: "DIN-DEF456",
-      customerName: "Carlos López",
-      email: "carlos.lopez@email.com",
-      phone: "55 5555 1234",
-      date: "2024-01-21",
-      time: "20:00",
-      partySize: 6,
-      zone: "interior",
-      tableNumber: "8",
-      status: "active",
-      comments: "Celebración de cumpleaños",
-    },
-    {
-      id: 4,
-      code: "DIN-GHI321",
-      customerName: "Ana Martínez",
-      email: "ana.martinez@email.com",
-      phone: "55 4444 5678",
-      date: "2024-01-19",
-      time: "18:00",
-      partySize: 3,
-      zone: "interior",
-      tableNumber: "15",
-      status: "cancelled",
-      comments: "",
-    },
-    {
-      id: 5,
-      code: "DIN-JKL654",
-      customerName: "Roberto Sánchez",
-      email: "roberto.sanchez@email.com",
-      phone: "55 3333 9876",
-      date: "2024-01-22",
-      time: "21:00",
-      partySize: 2,
-      zone: "patio",
-      tableNumber: "3",
-      status: "in_progress",
-      comments: "",
-      plate: "Pasta al pesto",
-    },
-  ]);
-
-  const [editingReservation, setEditingReservation] = useState(null);
-  const [viewingReservation, setViewingReservation] = useState(null);
+  const [reservations, setReservations] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [viewingReservation, setViewingReservation] = useState(null);
   const [formData, setFormData] = useState({
-    code: "",
+    id: "",
     customerName: "",
     email: "",
     phone: "",
     date: "",
     time: "",
     partySize: "",
-    zone: "interior",
     tableNumber: "",
     status: "active",
     comments: "",
-    plate: "",
   });
+
+  // Load reservations and tables on mount
+  useEffect(() => {
+    async function loadData() {
+      const reservationsResponse = await getReservations();
+      if (reservationsResponse.status === 200) {
+        setReservations(reservationsResponse.reservations);
+      }
+
+      const tablesResponse = await getTables();
+      if (tablesResponse.status === 200) {
+        setTables(tablesResponse.tables);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  function formatDateTimeForDisplay(dateTime) {
+    if (!dateTime) return { date: "", time: "" };
+    const dt = new Date(dateTime);
+    const date = dt.toISOString().split('T')[0];
+    const time = dt.toTimeString().split(' ')[0].substring(0, 5);
+    return { date, time };
+  }
+
+  function combineDateTime(date, time) {
+    if (!date || !time) return null;
+    const dateTimeString = `${date}T${time}:00`;
+    return new Date(dateTimeString).toISOString();
+  }
 
   function handleReservationClick(reservation) {
     setViewingReservation(reservation);
-    setEditingReservation(null);
+    setIsEditing(false);
     setIsCreating(false);
-    setIsEditMode(false);
     openModal(`view-reservation-${reservation.id}`);
   }
 
   function handleEditClick() {
     if (!viewingReservation) return;
-    setEditingReservation(viewingReservation);
-    setIsEditMode(true);
+    setIsEditing(true);
+    setIsCreating(false);
+    const { date, time } = formatDateTimeForDisplay(viewingReservation.date_time);
+    setFormData({
+      id: viewingReservation.id || "",
+      customerName: viewingReservation.name || "",
+      email: viewingReservation.email || "",
+      phone: viewingReservation.phone_number || "",
+      date: date,
+      time: time,
+      partySize: viewingReservation.amount_people?.toString() || "",
+      tableNumber: viewingReservation.table?.code || "",
+      status: viewingReservation.state || "active",
+      comments: viewingReservation.notes || "",
+    });
     closeModal();
     openModal(`edit-reservation-${viewingReservation.id}`);
-    setFormData({
-      code: viewingReservation.code,
-      customerName: viewingReservation.customerName,
-      email: viewingReservation.email,
-      phone: viewingReservation.phone,
-      date: viewingReservation.date,
-      time: viewingReservation.time,
-      partySize: viewingReservation.partySize.toString(),
-      zone: viewingReservation.zone,
-      tableNumber: viewingReservation.tableNumber,
-      status: viewingReservation.status,
-      comments: viewingReservation.comments || "",
-      plate: viewingReservation.plate || "",
-    });
   }
 
   function handleCreateClick() {
-    setEditingReservation(null);
-    setViewingReservation(null);
+    setIsEditing(false);
     setIsCreating(true);
-    setIsEditMode(true);
+    setViewingReservation(null);
     setFormData({
-      code: "",
+      id: "",
       customerName: "",
       email: "",
       phone: "",
       date: "",
       time: "",
       partySize: "",
-      zone: "interior",
       tableNumber: "",
       status: "active",
       comments: "",
-      plate: "",
     });
     openModal("create-reservation");
   }
 
   function handleChange(e) {
     const { name, value } = e.target;
-    const updatedFormData = {
+    setFormData({
       ...formData,
       [name]: value,
-    };
-    
-    // Si se cambia el estado y no es "in_progress", limpiar el campo plate
-    if (name === "status" && value !== "in_progress") {
-      updatedFormData.plate = "";
-    }
-    
-    setFormData(updatedFormData);
+    });
   }
 
-  function handleSubmit(e) {
-    e.preventDefault();
+  async function handleDeleteReservation() {
+    resetMessages();
+    if (!formData.id) {
+      return;
+    }
 
-    if (isCreating) {
-      // Crear nueva reservación
-      const newReservation = {
-        id: Math.max(...reservations.map(r => r.id)) + 1,
-        code: formData.code || `DIN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-        customerName: formData.customerName,
-        email: formData.email,
-        phone: formData.phone,
-        date: formData.date,
-        time: formData.time,
-        partySize: parseInt(formData.partySize),
-        zone: formData.zone,
-        tableNumber: formData.tableNumber,
-        status: formData.status,
-        comments: formData.comments,
-        plate: formData.status === "in_progress" ? formData.plate : "",
-      };
-      setReservations([...reservations, newReservation]);
-      closeModal();
-      setEditingReservation(null);
-      setViewingReservation(null);
+    // Confirm deletion
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la reservación?`)) {
+      return;
+    }
+
+    const apiResponse = await deleteReservation(formData.id);
+
+    if (apiResponse.status === 201) {
+      // Remove reservation from state
+      setReservations((prevReservations) => prevReservations.filter((reservation) => reservation.id !== formData.id));
+      
+      // Clear form and close modal
+      setFormData({
+        id: "",
+        customerName: "",
+        email: "",
+        phone: "",
+        date: "",
+        time: "",
+        partySize: "",
+        tableNumber: "",
+        status: "active",
+        comments: "",
+      });
+      setIsEditing(false);
       setIsCreating(false);
-      setIsEditMode(false);
-    } else if (editingReservation) {
-      // Editar reservación existente
-      const updatedReservation = {
-        ...editingReservation,
-        code: formData.code,
-        customerName: formData.customerName,
-        email: formData.email,
-        phone: formData.phone,
-        date: formData.date,
-        time: formData.time,
-        partySize: parseInt(formData.partySize),
-        zone: formData.zone,
-        tableNumber: formData.tableNumber,
-        status: formData.status,
-        comments: formData.comments,
-        plate: formData.status === "in_progress" ? formData.plate : "",
-      };
-      
-      const updatedReservations = reservations.map((reservation) =>
-        reservation.id === editingReservation.id
-          ? updatedReservation
-          : reservation
-      );
-      setReservations(updatedReservations);
-      
-      // Volver a modo vista con la reservación actualizada
-      setViewingReservation(updatedReservation);
-      setEditingReservation(null);
-      setIsEditMode(false);
+      setViewingReservation(null);
       closeModal();
-      openModal(`view-reservation-${updatedReservation.id}`);
+      
+      setSuccessMessage("Reservación eliminada exitosamente");
+    } else {
+      setErrorMessage("Error al eliminar la reservación. Por favor intenta de nuevo.");
     }
   }
 
-  function handleCancelEdit() {
-    setIsEditMode(false);
-    setEditingReservation(null);
-    // Volver a modo vista
-    if (viewingReservation) {
+  async function handleSubmit(e) {
+    e.preventDefault();
+    resetMessages();
+
+    setLoadingMessage("Cargando...");
+
+    const dateTime = combineDateTime(formData.date, formData.time);
+    if (!dateTime) {
+      setLoadingMessage("");
+      setErrorMessage("Por favor ingresa una fecha y hora válidas");
+      return;
+    }
+
+    const reservationData = {
+      name: formData.customerName,
+      email: formData.email || "",
+      phone_number: formData.phone || "",
+      date_time: dateTime,
+      table: formData.tableNumber || null,
+      amount_people: parseInt(formData.partySize),
+      state: formData.status,
+      notes: formData.comments || "",
+    };
+
+    // Determine if creating or editing
+    const isEditingReservation = isEditing && formData.id;
+    const reservationResponse = isEditingReservation
+      ? await editReservation({ ...reservationData, id: formData.id })
+      : await createReservation(reservationData);
+    
+    setLoadingMessage("");
+
+    if (reservationResponse.status === 500 || reservationResponse.error) {
+      setErrorMessage("Hubo un error al intentar procesar la solicitud");
+      return;
+    }
+    
+    if (reservationResponse.status === 400) {
+      // Errores de validación del backend
+      const errors = reservationResponse.validationErrors || {};
+      let errorMessage = `Error al ${isEditingReservation ? 'actualizar' : 'crear'} la reservación:\n`;
+      
+      // Handle validator errors (valid_* fields)
+      if (errors.valid_name === false) {
+        errorMessage += "- El nombre es requerido\n";
+
+      }
+      if (errors.valid_email === false) {
+        errorMessage += "- El formato del email no es válido\n";
+
+      }
+      if (errors.valid_date_time === false) {
+        errorMessage += "- La fecha y hora son requeridas y deben ser en el futuro\n";
+
+      }
+      if (errors.valid_table === false) {
+        errorMessage += "- La mesa seleccionada no existe\n";
+
+      }
+      if (errors.valid_amount_people === false) {
+        errorMessage += "- El número de personas debe ser mayor a 0\n";
+
+      }
+      if (errors.valid_state === false) {
+        errorMessage += "- El estado es requerido\n";
+
+      }
+      if (errors.valid_notes === false) {
+        errorMessage += "- Los comentarios no pueden exceder 2048 caracteres\n";
+
+      }
+      
+      // Set error message (always show base message + specific errors if found)
+      setErrorMessage(errorMessage);
+      return;
+    } else if (reservationResponse.status === 201) {
+      if (isCreating) {
+        // Use the returned reservation data to update state
+        if (reservationResponse.reservation) {
+          setReservations([...reservations, reservationResponse.reservation]);
+        }
+        setSuccessMessage("Reservación creada con éxito!");
+      } else {
+        // Edit reservation - update state manually from formData (no response data)
+        const updatedReservations = reservations.map((reservation) => {
+          if (reservation.id === formData.id) {
+            const { date, time } = formatDateTimeForDisplay(dateTime);
+            return {
+              ...reservation,
+              name: formData.customerName,
+              email: formData.email || null,
+              phone_number: formData.phone || null,
+              date_time: dateTime,
+              table: tables.find(t => t.code === formData.tableNumber) || null,
+              amount_people: parseInt(formData.partySize),
+              state: formData.status,
+              notes: formData.comments || null,
+            };
+          }
+          return reservation;
+        });
+        setReservations(updatedReservations);
+        setSuccessMessage("Reservación actualizada con éxito!");
+      }
+      
       closeModal();
-      openModal(`view-reservation-${viewingReservation.id}`);
+      setIsEditing(false);
+      setIsCreating(false);
+      setViewingReservation(null);
+    } else {
+      setErrorMessage(`Error desconocido con código de estatus: ${reservationResponse.status}`);
     }
   }
 
@@ -269,19 +301,6 @@ export default function AdminReservationsPage() {
     }
   }
 
-  function getZoneLabel(zone) {
-    switch (zone) {
-      case "interior":
-        return "Interior";
-      case "patio":
-        return "Terraza";
-      case "bar":
-        return "Bar";
-      default:
-        return zone;
-    }
-  }
-
   return (
     <div className="admin-page">
       <div className="admin-page-header">
@@ -301,38 +320,45 @@ export default function AdminReservationsPage() {
 
       <div className="admin-content-card">
         <div className="admin-reservations-list-vertical">
-          {[...reservations].sort((a, b) => {
-            // Ordenar por fecha primero, luego por hora
-            const dateCompare = a.date.localeCompare(b.date);
-            if (dateCompare !== 0) return dateCompare;
-            return a.time.localeCompare(b.time);
-          }).map((reservation) => (
-            <div
-              key={reservation.id}
-              className="admin-reservation-row-item"
-              onClick={() => handleReservationClick(reservation)}
-            >
-              <div className="admin-reservation-row-left">
-                <span className="admin-reservation-row-code">{reservation.code}</span>
-                <h3>{reservation.customerName}</h3>
-                <span className="admin-reservation-row-info">
-                  {reservation.date} · {reservation.time} · Mesa {reservation.tableNumber} · {reservation.partySize} personas
-                </span>
-              </div>
-              <div className="admin-reservation-row-right">
-                <span className={`admin-table-status ${getStatusColor(reservation.status)}`}>
-                  {getStatusLabel(reservation.status)}
-                </span>
-              </div>
-            </div>
-          ))}
+          {reservations.length === 0 ? (
+            <div>No hay reservaciones registradas</div>
+          ) : (
+            [...reservations].sort((a, b) => {
+              // Sort by date_time (newest first)
+              const dateA = new Date(a.date_time);
+              const dateB = new Date(b.date_time);
+              return dateB - dateA;
+            }).map((reservation) => {
+              const { date, time } = formatDateTimeForDisplay(reservation.date_time);
+              return (
+                <div
+                  key={reservation.id}
+                  className="admin-reservation-row-item"
+                  onClick={() => handleReservationClick(reservation)}
+                >
+                  <div className="admin-reservation-row-left">
+                    <span className="admin-reservation-row-code">{reservation.code}</span>
+                    <h3>{reservation.name}</h3>
+                    <span className="admin-reservation-row-info">
+                      {date} · {time} · {reservation.table ? `Mesa ${reservation.table.code}` : "Sin mesa"} · {reservation.amount_people} personas
+                    </span>
+                  </div>
+                  <div className="admin-reservation-row-right">
+                    <span className={`admin-table-status ${getStatusColor(reservation.state)}`}>
+                      {getStatusLabel(reservation.state)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
-      {(viewingReservation || editingReservation || isCreating) && (
+      {(viewingReservation || isEditing || isCreating) && (
         <Modal isOpen={
-          (viewingReservation && openedModal === `view-reservation-${viewingReservation.id}`) ||
-          (editingReservation && openedModal === `edit-reservation-${editingReservation.id}`) ||
+          (viewingReservation && !isEditing && openedModal === `view-reservation-${viewingReservation.id}`) ||
+          (isEditing && openedModal === `edit-reservation-${formData.id}`) ||
           (isCreating && openedModal === "create-reservation")
         }>
           <div className="admin-modal">
@@ -340,12 +366,12 @@ export default function AdminReservationsPage() {
               <h2>
                 {isCreating 
                   ? "Crear Nueva Reservación" 
-                  : isEditMode 
+                  : isEditing 
                     ? "Editar Reservación" 
                     : "Detalles de Reservación"}
               </h2>
               <div className="admin-modal-header-actions">
-                {viewingReservation && !isEditMode && (
+                {viewingReservation && !isEditing && (
                   <button
                     type="button"
                     className="admin-btn-edit"
@@ -362,311 +388,264 @@ export default function AdminReservationsPage() {
                 </button>
               </div>
             </div>
-            {isEditMode || isCreating ? (
+            <Messages/>
+            {isEditing || isCreating ? (
               <form className="admin-modal-form" onSubmit={handleSubmit}>
-              <div className="admin-form-group">
-                <label htmlFor="code">Código de Reservación</label>
-                <input
-                  type="text"
-                  id="code"
-                  name="code"
-                  value={formData.code}
-                  onChange={handleChange}
-                  placeholder="Se generará automáticamente si se deja vacío"
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="customerName">Nombre del Cliente</label>
-                <input
-                  type="text"
-                  id="customerName"
-                  name="customerName"
-                  value={formData.customerName}
-                  onChange={handleChange}
-                  required
-                  placeholder="ej: Juan Pérez"
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  placeholder="ej: cliente@email.com"
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="phone">Teléfono</label>
-                <input
-                  type="text"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  placeholder="ej: 55 1234 5678"
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="date">Fecha</label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="time">Hora</label>
-                <input
-                  type="time"
-                  id="time"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="partySize">Número de Personas</label>
-                <input
-                  type="number"
-                  id="partySize"
-                  name="partySize"
-                  value={formData.partySize}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  max="20"
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="zone">Zona</label>
-                <div className="dropdown-div">
-                  <button
-                    type="button"
-                    className="admin-select-dropdown-button"
-                    id="zone-button"
-                    onClick={(e) => toggleDropdown("zone-dropdown")}
-                  >
-                    {formData.zone === "interior" ? (
-                      <span>Interior</span>
-                    ) : formData.zone === "patio" ? (
-                      <span>Terraza</span>
-                    ) : formData.zone === "bar" ? (
-                      <span>Bar</span>
-                    ) : (
-                      <span>Seleccionar zona...</span>
-                    )}
-                  </button>
-                  <Dropdown isOpen={openedDropdown === "zone-dropdown"}>
-                    <ul
-                      className="admin-select-dropdown-menu"
-                      id="zone-dropdown"
-                      style={{ overflowY: "scroll", maxHeight: "15rem" }}
-                    >
-                      <li>
-                        <a
-                          className="dropdown-item"
-                          onClick={() => {
-                            handleChange({
-                              target: { name: "zone", value: "interior" },
-                            });
-                            closeDropdown();
-                          }}
-                        >
-                          Interior
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          className="dropdown-item"
-                          onClick={() => {
-                            handleChange({
-                              target: { name: "zone", value: "patio" },
-                            });
-                            closeDropdown();
-                          }}
-                        >
-                          Terraza
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          className="dropdown-item"
-                          onClick={() => {
-                            handleChange({
-                              target: { name: "zone", value: "bar" },
-                            });
-                            closeDropdown();
-                          }}
-                        >
-                          Bar
-                        </a>
-                      </li>
-                    </ul>
-                  </Dropdown>
-                </div>
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="tableNumber">Mesa</label>
-                <input
-                  type="text"
-                  id="tableNumber"
-                  name="tableNumber"
-                  value={formData.tableNumber}
-                  onChange={handleChange}
-                  required
-                  placeholder="ej: 5, A1, VIP-1"
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label htmlFor="status">Estado</label>
-                <div className="dropdown-div">
-                  <button
-                    type="button"
-                    className="admin-select-dropdown-button"
-                    id="status-button"
-                    onClick={(e) => toggleDropdown("status-dropdown")}
-                  >
-                    {formData.status === "active" ? (
-                      <span>Activa</span>
-                    ) : formData.status === "in_progress" ? (
-                      <span>En Curso</span>
-                    ) : formData.status === "cancelled" ? (
-                      <span>Cancelada</span>
-                    ) : formData.status === "completed" ? (
-                      <span>Completada</span>
-                    ) : (
-                      <span>Seleccionar estado...</span>
-                    )}
-                  </button>
-                  <Dropdown isOpen={openedDropdown === "status-dropdown"}>
-                    <ul
-                      className="admin-select-dropdown-menu"
-                      id="status-dropdown"
-                      style={{ overflowY: "scroll", maxHeight: "15rem" }}
-                    >
-                      <li>
-                        <a
-                          className="dropdown-item"
-                          onClick={() => {
-                            handleChange({
-                              target: { name: "status", value: "active" },
-                            });
-                            closeDropdown();
-                          }}
-                        >
-                          Activa
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          className="dropdown-item"
-                          onClick={() => {
-                            handleChange({
-                              target: { name: "status", value: "in_progress" },
-                            });
-                            closeDropdown();
-                          }}
-                        >
-                          En Curso
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          className="dropdown-item"
-                          onClick={() => {
-                            handleChange({
-                              target: { name: "status", value: "cancelled" },
-                            });
-                            closeDropdown();
-                          }}
-                        >
-                          Cancelada
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          className="dropdown-item"
-                          onClick={() => {
-                            handleChange({
-                              target: { name: "status", value: "completed" },
-                            });
-                            closeDropdown();
-                          }}
-                        >
-                          Completada
-                        </a>
-                      </li>
-                    </ul>
-                  </Dropdown>
-                </div>
-              </div>
-
-              {formData.status === "in_progress" && (
-                <div className="admin-form-group full-width">
-                  <label htmlFor="plate">Platillo</label>
+                <div className="admin-form-group">
+                  <label htmlFor="customerName">Nombre del Cliente *</label>
                   <input
                     type="text"
-                    id="plate"
-                    name="plate"
-                    value={formData.plate}
+                    id="customerName"
+                    name="customerName"
+                    value={formData.customerName}
                     onChange={handleChange}
-                    placeholder="Platillo que está consumiendo (opcional)"
+                    required
+                    placeholder="ej: Juan Pérez"
                   />
                 </div>
-              )}
 
-              <div className="admin-form-group full-width">
-                <label htmlFor="comments">Comentarios</label>
-                <textarea
-                  id="comments"
-                  name="comments"
-                  value={formData.comments}
-                  onChange={handleChange}
-                  rows="3"
-                  placeholder="Comentarios adicionales (opcional)..."
-                />
-              </div>
+                <div className="admin-form-group">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="ej: cliente@email.com"
+                  />
+                </div>
 
-              <div className="admin-form-actions full-width">
-                {isEditMode && !isCreating && (
+                <div className="admin-form-group">
+                  <label htmlFor="phone">Teléfono</label>
+                  <input
+                    type="text"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="ej: 55 1234 5678"
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label htmlFor="date">Fecha *</label>
+                  <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label htmlFor="time">Hora *</label>
+                  <input
+                    type="time"
+                    id="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label htmlFor="partySize">Número de Personas *</label>
+                  <input
+                    type="number"
+                    id="partySize"
+                    name="partySize"
+                    value={formData.partySize}
+                    onChange={handleChange}
+                    required
+                    min="1"
+                    max="20"
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label htmlFor="tableNumber">Mesa</label>
+                  <div className="dropdown-div">
+                    <button
+                      type="button"
+                      className="admin-select-dropdown-button"
+                      id="table-button"
+                      onClick={(e) => toggleDropdown("table-dropdown")}
+                    >
+                      {formData.tableNumber ? (
+                        <span>{formData.tableNumber}</span>
+                      ) : (
+                        <span>Seleccionar mesa...</span>
+                      )}
+                    </button>
+                    <Dropdown isOpen={openedDropdown === "table-dropdown"}>
+                      <ul
+                        className="admin-select-dropdown-menu"
+                        id="table-dropdown"
+                        style={{ overflowY: "scroll", maxHeight: "15rem" }}
+                      >
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "tableNumber", value: "" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            Sin mesa
+                          </a>
+                        </li>
+                        {tables.map((table) => (
+                          <li key={table.id}>
+                            <a
+                              className="dropdown-item"
+                              onClick={() => {
+                                handleChange({
+                                  target: { name: "tableNumber", value: table.code },
+                                });
+                                closeDropdown();
+                              }}
+                            >
+                              {table.code}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </Dropdown>
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label htmlFor="status">Estado *</label>
+                  <div className="dropdown-div">
+                    <button
+                      type="button"
+                      className="admin-select-dropdown-button"
+                      id="status-button"
+                      onClick={(e) => toggleDropdown("status-dropdown")}
+                    >
+                      {formData.status === "active" ? (
+                        <span>Activa</span>
+                      ) : formData.status === "in_progress" ? (
+                        <span>En Curso</span>
+                      ) : formData.status === "cancelled" ? (
+                        <span>Cancelada</span>
+                      ) : formData.status === "completed" ? (
+                        <span>Completada</span>
+                      ) : (
+                        <span>Seleccionar estado...</span>
+                      )}
+                    </button>
+                    <Dropdown isOpen={openedDropdown === "status-dropdown"}>
+                      <ul
+                        className="admin-select-dropdown-menu"
+                        id="status-dropdown"
+                        style={{ overflowY: "scroll", maxHeight: "15rem" }}
+                      >
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "status", value: "active" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            Activa
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "status", value: "in_progress" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            En Curso
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "status", value: "cancelled" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            Cancelada
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "status", value: "completed" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            Completada
+                          </a>
+                        </li>
+                      </ul>
+                    </Dropdown>
+                  </div>
+                </div>
+
+                <div className="admin-form-group full-width">
+                  <label htmlFor="comments">Comentarios</label>
+                  <textarea
+                    id="comments"
+                    name="comments"
+                    value={formData.comments}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="Comentarios adicionales (opcional)..."
+                  />
+                </div>
+
+                <div className="admin-form-actions full-width">
+                  {isEditing && formData.id && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteReservation}
+                      style={{
+                        padding: "0.75rem 1.5rem",
+                        background: "#dc2626",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        marginRight: "auto",
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="admin-btn-secondary"
-                    onClick={handleCancelEdit}
+                    onClick={closeModal}
                   >
                     Cancelar
                   </button>
-                )}
-                <button
-                  type="button"
-                  className="admin-btn-secondary"
-                  onClick={closeModal}
-                >
-                  Cerrar
-                </button>
-                <button type="submit" className="admin-btn-primary">
-                  {isCreating ? "Crear" : "Guardar Cambios"}
-                </button>
-              </div>
-            </form>
+                  <button type="submit" className="admin-btn-primary">
+                    {isCreating ? "Crear" : "Guardar Cambios"}
+                  </button>
+                </div>
+              </form>
             ) : (
               <div className="admin-modal-view">
                 {viewingReservation && (
@@ -676,16 +655,20 @@ export default function AdminReservationsPage() {
                       <div className="admin-view-grid">
                         <div className="admin-view-item">
                           <span className="admin-view-label">Nombre:</span>
-                          <span className="admin-view-value">{viewingReservation.customerName}</span>
+                          <span className="admin-view-value">{viewingReservation.name}</span>
                         </div>
-                        <div className="admin-view-item">
-                          <span className="admin-view-label">Email:</span>
-                          <span className="admin-view-value">{viewingReservation.email}</span>
-                        </div>
-                        <div className="admin-view-item">
-                          <span className="admin-view-label">Teléfono:</span>
-                          <span className="admin-view-value">{viewingReservation.phone}</span>
-                        </div>
+                        {viewingReservation.email && (
+                          <div className="admin-view-item">
+                            <span className="admin-view-label">Email:</span>
+                            <span className="admin-view-value">{viewingReservation.email}</span>
+                          </div>
+                        )}
+                        {viewingReservation.phone_number && (
+                          <div className="admin-view-item">
+                            <span className="admin-view-label">Teléfono:</span>
+                            <span className="admin-view-value">{viewingReservation.phone_number}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -696,45 +679,42 @@ export default function AdminReservationsPage() {
                           <span className="admin-view-label">Código:</span>
                           <span className="admin-view-value admin-view-code">{viewingReservation.code}</span>
                         </div>
-                        <div className="admin-view-item">
-                          <span className="admin-view-label">Fecha:</span>
-                          <span className="admin-view-value">{viewingReservation.date}</span>
-                        </div>
-                        <div className="admin-view-item">
-                          <span className="admin-view-label">Hora:</span>
-                          <span className="admin-view-value">{viewingReservation.time}</span>
-                        </div>
+                        {(() => {
+                          const { date, time } = formatDateTimeForDisplay(viewingReservation.date_time);
+                          return (
+                            <>
+                              <div className="admin-view-item">
+                                <span className="admin-view-label">Fecha:</span>
+                                <span className="admin-view-value">{date}</span>
+                              </div>
+                              <div className="admin-view-item">
+                                <span className="admin-view-label">Hora:</span>
+                                <span className="admin-view-value">{time}</span>
+                              </div>
+                            </>
+                          );
+                        })()}
                         <div className="admin-view-item">
                           <span className="admin-view-label">Mesa:</span>
-                          <span className="admin-view-value">{viewingReservation.tableNumber}</span>
+                          <span className="admin-view-value">{viewingReservation.table ? viewingReservation.table.code : "Sin mesa"}</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Grupo:</span>
-                          <span className="admin-view-value">{viewingReservation.partySize} personas</span>
-                        </div>
-                        <div className="admin-view-item">
-                          <span className="admin-view-label">Zona:</span>
-                          <span className="admin-view-value">{getZoneLabel(viewingReservation.zone)}</span>
+                          <span className="admin-view-value">{viewingReservation.amount_people} personas</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Estado:</span>
-                          <span className={`admin-table-status ${getStatusColor(viewingReservation.status)}`}>
-                            {getStatusLabel(viewingReservation.status)}
+                          <span className={`admin-table-status ${getStatusColor(viewingReservation.state)}`}>
+                            {getStatusLabel(viewingReservation.state)}
                           </span>
                         </div>
-                        {viewingReservation.status === "in_progress" && viewingReservation.plate && (
-                          <div className="admin-view-item">
-                            <span className="admin-view-label">Platillo:</span>
-                            <span className="admin-view-value">{viewingReservation.plate}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
 
-                    {viewingReservation.comments && (
+                    {viewingReservation.notes && (
                       <div className="admin-view-section">
                         <h3>Comentarios</h3>
-                        <p className="admin-view-comments">{viewingReservation.comments}</p>
+                        <p className="admin-view-comments">{viewingReservation.notes}</p>
                       </div>
                     )}
                   </>

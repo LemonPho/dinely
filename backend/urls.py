@@ -8,6 +8,7 @@ from backend.views.authentication import authentication
 from backend.views.admin.plates import create_plate_category, edit_plate_category, delete_plate_category, get_plate_categories, create_plate, edit_plate, delete_plate, get_plates
 from backend.views.admin.users import create_user, edit_user, delete_user
 from backend.views.admin.tables import create_table_area, edit_table_area, delete_table_area, get_table_areas, create_table, edit_table, delete_table, get_tables
+from backend.views.admin.reservations import create_reservation, edit_reservation, delete_reservation, get_reservations
 from .views.authentication.authentication import get_csrf_token, register, login_view, get_current_user, set_password
 
 urlpatterns = [
@@ -33,6 +34,11 @@ urlpatterns = [
     path("admin/edit-table/", edit_table),
     path("admin/delete-table/", delete_table),
     path("admin/get-tables/", get_tables),
+
+    path("admin/create-reservation/", create_reservation),
+    path("admin/edit-reservation/", edit_reservation),
+    path("admin/delete-reservation/", delete_reservation),
+    path("admin/get-reservations/", get_reservations),
 
     path("authentication/csrf/", authentication.get_csrf_token),
     path("authentication/register/", authentication.register),

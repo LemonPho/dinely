@@ -69,7 +69,7 @@ class TableArea(models.Model):
     label = models.CharField(max_length=64, unique=True)
 
 class Table(models.Model):
-    code = models.CharField(max_length=64)
+    code = models.CharField(max_length=64, unique=True)
     capacity = models.PositiveIntegerField()
     state = models.CharField()
     area = models.ForeignKey(TableArea, on_delete=models.SET_NULL, related_name="tables", null=True)
@@ -90,6 +90,7 @@ class Reservation(models.Model):
     table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="reservations", null=True)
     amount_people = models.PositiveIntegerField()
     state = models.CharField()
+    notes = models.CharField(max_length=2048, null=True, blank=True)
 
 #Asi el restaurante puede tener varios categorias y nos facilita obtener cuales son los categorias disponibles
 class PlateCategory(models.Model):
