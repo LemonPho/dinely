@@ -1,47 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useUserContext } from "../application-context/user-context.jsx";
+import { useMessagesContext } from "../application-context/messages-context.jsx";
+import { createUserReservation, getTableAreas } from "../fetch/user.jsx";
+import Messages from "../util-components/messages.jsx";
 
 export default function Reserva() {
+  const { user, userLoading } = useUserContext();
+  const { setErrorMessage, setSuccessMessage, setLoadingMessage, resetMessages } = useMessagesContext();
+
   const [formData, setFormData] = useState({
-    nombre: "",
+    name: "",
     email: "",
-    telefono: "",
-    fecha: "",
-    hora: "",
-    personas: "2",
-    zona: "interior",
-    comentarios: "",
+    phone: "",
+    date: "",
+    time: "",
+    people: "2",
+    tableArea: "",
+    comments: "",
   });
 
-  const [mensajeConfirmacion, setMensajeConfirmacion] = useState("");
-  const [disponibilidad, setDisponibilidad] = useState([]); // horarios simulados
-  const [selectedSlot, setSelectedSlot] = useState(null); // horario elegido
+  const [tableAreas, setTableAreas] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reservationSummary, setReservationSummary] = useState(null);
 
-  // Preselección de platillo
-  const [quierePlato, setQuierePlato] = useState("no"); // "no" | "si"
-  const [platoSeleccionado, setPlatoSeleccionado] = useState("");
+  // Load table areas on mount
+  useEffect(() => {
+    async function loadTableAreas() {
+      const response = await getTableAreas();
+      if (response.status === 200) {
+        setTableAreas(response.tableAreas);
+      } else {
+        setErrorMessage("Error al cargar las áreas disponibles");
+      }
+    }
 
-  // NUEVO: resumen de reserva confirmada
-  const [resumenReserva, setResumenReserva] = useState(null);
+    loadTableAreas();
+  }, []);
 
-  // Menú resumido para preselección
-  const menuPreseleccion = {
-    entrada: [
-      { nombre: "Guacamole con totopos", precio: "$115 MXN" },
-      { nombre: "Papas fritas con cheddar", precio: "$120 MXN" },
-      { nombre: "Bruschettas con jitomate y albahaca", precio: "$130 MXN" },
-    ],
-    comida: [
-      { nombre: "Pollo a la parrilla con verduras", precio: "$210 MXN" },
-      { nombre: "Hamburguesa gourmet Dinely", precio: "$190 MXN" },
-      { nombre: "Pasta al pesto", precio: "$185 MXN" },
-    ],
-    bebida: [
-      { nombre: "Limonada natural", precio: "$55 MXN" },
-      { nombre: "Smoothie de fresa", precio: "$70 MXN" },
-      { nombre: "Café latte", precio: "$60 MXN" },
-    ],
-  };
+  // Auto-fill user data if logged in
+  useEffect(() => {
+    if (user && !userLoading) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone_number || "",
+      }));
+    }
+  }, [user, userLoading]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,516 +58,342 @@ export default function Reserva() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  function combineDateTime(date, time) {
+    if (!date || !time) return null;
+    const dateTimeString = `${date}T${time}:00`;
+    return new Date(dateTimeString).toISOString();
+  }
+
+  function formatDateTimeForDisplay(dateTime) {
+    if (!dateTime) return { date: "", time: "" };
+    const dt = new Date(dateTime);
+    const date = dt.toISOString().split('T')[0];
+    const time = dt.toTimeString().split(' ')[0].substring(0, 5);
+    return { date, time };
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    resetMessages();
+    setIsSubmitting(true);
+    setLoadingMessage("Creando reserva...");
 
-    // Cada vez que se busca disponibilidad, limpiamos el resumen previo
-    setResumenReserva(null);
+    const dateTime = combineDateTime(formData.date, formData.time);
+    if (!dateTime) {
+      setLoadingMessage("");
+      setIsSubmitting(false);
+      setErrorMessage("Por favor ingresa una fecha y hora válidas");
+      return;
+    }
 
-    const horariosBase = [
-      "13:00",
-      "13:30",
-      "14:00",
-      "14:30",
-      "15:00",
-      "19:00",
-      "19:30",
-      "20:00",
-      "20:30",
-      "21:00",
-      "21:30",
-      "22:00",
-    ];
+    const reservationData = {
+      name: formData.name,
+      email: formData.email || "",
+      phone_number: formData.phone || "",
+      date_time: dateTime,
+      table_area: formData.tableArea || null,
+      amount_people: parseInt(formData.people),
+      notes: formData.comments || "",
+    };
 
-    const slots = horariosBase.map((horaSlot) => ({
-      hora: horaSlot,
-      disponible: Math.random() > 0.3, // simulación de disponibilidad
-    }));
+    const response = await createUserReservation(reservationData);
 
-    setDisponibilidad(slots);
-    setSelectedSlot(null);
+    setLoadingMessage("");
+    setIsSubmitting(false);
 
-    const hayDisponibles = slots.some((s) => s.disponible);
+    if (response.status === 500 || response.error) {
+      setErrorMessage("Hubo un error al intentar procesar la solicitud");
+      return;
+    }
 
-    let mensajeBase;
-    if (hayDisponibles) {
-      mensajeBase = `Estos son los horarios disponibles para tu visita de ${
-        formData.personas
-      } persona(s) el día ${formData.fecha || "(fecha por definir)"}:`;
+    if (response.status === 400) {
+      // Validation errors
+      const errors = response.validationErrors || {};
+      let errorMessage = "Error al crear la reservación:\n";
+
+      if (errors.valid_name === false) {
+        errorMessage += "- El nombre es requerido\n";
+      }
+      if (errors.valid_email === false) {
+        errorMessage += "- El formato del email no es válido\n";
+      }
+      if (errors.valid_date_time === false) {
+        errorMessage += "- La fecha y hora son requeridas y deben ser en el futuro\n";
+      }
+      if (errors.valid_table_area === false) {
+        errorMessage += "- El área seleccionada no existe\n";
+      }
+      if (errors.valid_amount_people === false) {
+        errorMessage += "- El número de personas debe ser mayor a 0\n";
+      }
+      if (errors.valid_notes === false) {
+        errorMessage += "- Los comentarios no pueden exceder 2048 caracteres\n";
+      }
+
+      setErrorMessage(errorMessage);
+      return;
+    }
+
+    if (response.status === 201) {
+      if (response.reservation) {
+        const { date, time } = formatDateTimeForDisplay(response.reservation.date_time);
+        setReservationSummary({
+          code: response.reservation.code,
+          name: response.reservation.name,
+          email: response.reservation.email,
+          phone: response.reservation.phone_number,
+          date: date,
+          time: time,
+          people: response.reservation.amount_people,
+          area: formData.tableArea || "Sin preferencia",
+        });
+        setSuccessMessage("Reservación creada con éxito!");
+      }
     } else {
-      mensajeBase =
-        "No encontramos horarios disponibles para la fecha seleccionada. Prueba con otro horario o día.";
+      setErrorMessage(`Error desconocido con código de estatus: ${response.status}`);
     }
-
-    if (platoSeleccionado) {
-      mensajeBase += ` Has preseleccionado el platillo "${platoSeleccionado}".`;
-    }
-
-    setMensajeConfirmacion(mensajeBase);
   };
 
-  // NUEVO: confirmar reserva y generar código
-  const handleConfirmReserva = () => {
-    if (!selectedSlot) return;
-
-    const codigo = "DIN-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-    setResumenReserva({
-      codigo,
-      nombre: formData.nombre,
-      email: formData.email,
-      telefono: formData.telefono,
-      fecha: formData.fecha,
-      hora: selectedSlot,
-      personas: formData.personas,
-      zona: formData.zona,
-      platillo: platoSeleccionado || null,
-    });
-  };
+  const isUserLoggedIn = user && !userLoading;
 
   return (
     <section className="reservation-page">
-          <div className="container">
-            {/* ENCABEZADO */}
-            <div className="reservation-header">
-              <h1>Reserva tu mesa</h1>
-              <p>
-                Completa los datos de tu visita y envía tu solicitud. Nosotros
-                nos encargamos de tener tu mesa lista para que solo llegues a
-                disfrutar.
-              </p>
-            </div>
+      <div className="container">
+        {/* ENCABEZADO */}
+        <div className="reservation-header">
+          <h1>Reserva tu mesa</h1>
+          <p>
+            Completa los datos de tu visita y envía tu solicitud. Nosotros
+            nos encargamos de tener tu mesa lista para que solo llegues a
+            disfrutar.
+          </p>
+        </div>
 
-            {/* GRID PRINCIPAL */}
-            <div className="reservation-grid">
-              {/* TARJETA DEL FORMULARIO */}
-              <div className="reservation-card">
-                <h2>Datos de tu reserva</h2>
+        {/* GRID PRINCIPAL */}
+        <div className="reservation-grid">
+          {/* TARJETA DEL FORMULARIO */}
+          <div className="reservation-card">
+            <h2>Datos de tu reserva</h2>
 
-                <form className="reservation-form" onSubmit={handleSubmit}>
-                  {/* Nombre y email */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="nombre">Nombre completo</label>
-                      <input
-                        type="text"
-                        id="nombre"
-                        name="nombre"
-                        value={formData.nombre}
-                        onChange={handleChange}
-                        placeholder="Ej. Ana López"
-                        required
-                      />
-                    </div>
+            <form className="reservation-form" onSubmit={handleSubmit}>
+              <Messages />
 
-                    <div className="form-group">
-                      <label htmlFor="email">Correo electrónico</label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="tuemail@ejemplo.com"
-                        required
-                      />
-                    </div>
-                  </div>
+              {/* Nombre y email */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="name">Nombre completo</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Ej. Ana López"
+                    required={!isUserLoggedIn}
+                    readOnly={isUserLoggedIn}
+                    style={isUserLoggedIn ? { backgroundColor: "#f5f5f5", cursor: "not-allowed" } : {}}
+                  />
+                </div>
 
-                  {/* Teléfono */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="telefono">Teléfono de contacto</label>
-                      <input
-                        type="tel"
-                        id="telefono"
-                        name="telefono"
-                        value={formData.telefono}
-                        onChange={handleChange}
-                        placeholder="Ej. 55 1234 5678"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Fecha, hora, personas */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="fecha">Fecha</label>
-                      <input
-                        type="date"
-                        id="fecha"
-                        name="fecha"
-                        value={formData.fecha}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="hora">Hora aproximada</label>
-                      <input
-                        type="time"
-                        id="hora"
-                        name="hora"
-                        value={formData.hora}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="personas">Número de personas</label>
-                      <select
-                        id="personas"
-                        name="personas"
-                        value={formData.personas}
-                        onChange={handleChange}
-                      >
-                        <option value="1">1 persona</option>
-                        <option value="2">2 personas</option>
-                        <option value="3">3 personas</option>
-                        <option value="4">4 personas</option>
-                        <option value="5">5 personas</option>
-                        <option value="6">6 personas</option>
-                        <option value="7">7 personas</option>
-                        <option value="8">8 personas</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Zona preferida */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Preferencia de zona</label>
-                      <div className="zone-options">
-                        <label>
-                          <input
-                            type="radio"
-                            name="zona"
-                            value="interior"
-                            checked={formData.zona === "interior"}
-                            onChange={handleChange}
-                          />
-                          Interior
-                        </label>
-                        <label>
-                          <input
-                            type="radio"
-                            name="zona"
-                            value="terraza"
-                            checked={formData.zona === "terraza"}
-                            onChange={handleChange}
-                          />
-                          Terraza
-                        </label>
-                        <label>
-                          <input
-                            type="radio"
-                            name="zona"
-                            value="barra"
-                            checked={formData.zona === "barra"}
-                            onChange={handleChange}
-                          />
-                          Barra
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Comentarios */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="comentarios">
-                        Comentarios o peticiones especiales
-                      </label>
-                      <textarea
-                        id="comentarios"
-                        name="comentarios"
-                        value={formData.comentarios}
-                        onChange={handleChange}
-                        rows="3"
-                        placeholder="Ej. Cumpleaños, alergias, silla para bebé..."
-                      />
-                    </div>
-                  </div>
-
-                  {/* ¿Preseleccionar platillo? */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>¿Quieres preseleccionar algún platillo?</label>
-                      <div className="zone-options">
-                        <label>
-                          <input
-                            type="radio"
-                            name="preseleccion"
-                            value="no"
-                            checked={quierePlato === "no"}
-                            onChange={() => setQuierePlato("no")}
-                          />
-                          No, decidiré al llegar
-                        </label>
-                        <label>
-                          <input
-                            type="radio"
-                            name="preseleccion"
-                            value="si"
-                            checked={quierePlato === "si"}
-                            onChange={() => setQuierePlato("si")}
-                          />
-                          Sí, quiero ver el menú
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* MENÚ COMPACTO PARA PRESELECCIÓN */}
-                  {quierePlato === "si" && (
-                    <div className="preselect-section">
-                      <h3>Elige un platillo de nuestro menú</h3>
-                      <p className="preselect-sub">
-                        Esta selección es opcional y podrás cambiarla al llegar
-                        al restaurante.
-                      </p>
-
-                      <div className="preselect-columns">
-                        {/* Entrada */}
-                        <div className="preselect-column">
-                          <h4>Entrada</h4>
-                          <ul className="preselect-list">
-                            {menuPreseleccion.entrada.map((item) => (
-                              <li key={item.nombre}>
-                                <button
-                                  type="button"
-                                  className={[
-                                    "preselect-item-btn",
-                                    platoSeleccionado === item.nombre
-                                      ? "preselect-item-btn-selected"
-                                      : "",
-                                  ].join(" ")}
-                                  onClick={() =>
-                                    setPlatoSeleccionado(item.nombre)
-                                  }
-                                >
-                                  <span>{item.nombre}</span>
-                                  <span className="preselect-price">
-                                    {item.precio}
-                                  </span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Comida */}
-                        <div className="preselect-column">
-                          <h4>Plato fuerte</h4>
-                          <ul className="preselect-list">
-                            {menuPreseleccion.comida.map((item) => (
-                              <li key={item.nombre}>
-                                <button
-                                  type="button"
-                                  className={[
-                                    "preselect-item-btn",
-                                    platoSeleccionado === item.nombre
-                                      ? "preselect-item-btn-selected"
-                                      : "",
-                                  ].join(" ")}
-                                  onClick={() =>
-                                    setPlatoSeleccionado(item.nombre)
-                                  }
-                                >
-                                  <span>{item.nombre}</span>
-                                  <span className="preselect-price">
-                                    {item.precio}
-                                  </span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Bebida */}
-                        <div className="preselect-column">
-                          <h4>Bebida</h4>
-                          <ul className="preselect-list">
-                            {menuPreseleccion.bebida.map((item) => (
-                              <li key={item.nombre}>
-                                <button
-                                  type="button"
-                                  className={[
-                                    "preselect-item-btn",
-                                    platoSeleccionado === item.nombre
-                                      ? "preselect-item-btn-selected"
-                                      : "",
-                                  ].join(" ")}
-                                  onClick={() =>
-                                    setPlatoSeleccionado(item.nombre)
-                                  }
-                                >
-                                  <span>{item.nombre}</span>
-                                  <span className="preselect-price">
-                                    {item.precio}
-                                  </span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-
-                      {platoSeleccionado && (
-                        <p className="reservation-message">
-                          Has preseleccionado:{" "}
-                          <strong>{platoSeleccionado}</strong>.
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Botón buscar disponibilidad */}
-                  <div className="form-actions">
-                    <button type="submit" className="btn-primary">
-                      Buscar disponibilidad
-                    </button>
-                  </div>
-
-                  {/* Mensaje de disponibilidad */}
-                  {mensajeConfirmacion && (
-                    <p className="reservation-message">
-                      {mensajeConfirmacion}
-                    </p>
-                  )}
-
-                  {/* LISTA DE HORARIOS */}
-                  {disponibilidad.length > 0 && (
-                    <div className="availability-section">
-                      <h3>Horarios para elegir</h3>
-                      <div className="availability-grid">
-                        {disponibilidad.map((slot) => {
-                          const isSelected = selectedSlot === slot.hora;
-                          const isDisabled = !slot.disponible;
-
-                          return (
-                            <button
-                              key={slot.hora}
-                              type="button"
-                              className={[
-                                "slot-button",
-                                slot.disponible
-                                  ? "slot-available"
-                                  : "slot-unavailable",
-                                isSelected ? "slot-selected" : "",
-                              ].join(" ")}
-                              disabled={isDisabled}
-                              onClick={() => {
-                                if (!isDisabled) {
-                                  setSelectedSlot(slot.hora);
-                                }
-                              }}
-                            >
-                              {slot.hora}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {selectedSlot && (
-                        <>
-                          <p className="reservation-message">
-                            Has elegido el horario{" "}
-                            <strong>{selectedSlot}</strong>. Ahora puedes
-                            confirmar tu reserva.
-                          </p>
-                          <button
-                            type="button"
-                            className="btn-primary confirm-reservation-btn"
-                            onClick={handleConfirmReserva}
-                          >
-                            Confirmar reserva
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {/* RESUMEN DE RESERVA CONFIRMADA */}
-                  {resumenReserva && (
-                    <div className="reservation-summary">
-                      <h3>Tu reserva ha sido registrada</h3>
-                      <p className="summary-code">
-                        Código de reserva:{" "}
-                        <span>{resumenReserva.codigo}</span>
-                      </p>
-                      <ul>
-                        <li>
-                          <strong>Nombre:</strong> {resumenReserva.nombre}
-                        </li>
-                        <li>
-                          <strong>Correo:</strong> {resumenReserva.email}
-                        </li>
-                        {resumenReserva.telefono && (
-                          <li>
-                            <strong>Teléfono:</strong>{" "}
-                            {resumenReserva.telefono}
-                          </li>
-                        )}
-                        <li>
-                          <strong>Fecha:</strong> {resumenReserva.fecha}
-                        </li>
-                        <li>
-                          <strong>Hora:</strong> {resumenReserva.hora}
-                        </li>
-                        <li>
-                          <strong>Personas:</strong> {resumenReserva.personas}
-                        </li>
-                        <li>
-                          <strong>Zona:</strong> {resumenReserva.zona}
-                        </li>
-                        {resumenReserva.platillo && (
-                          <li>
-                            <strong>Platillo preseleccionado:</strong>{" "}
-                            {resumenReserva.platillo}
-                          </li>
-                        )}
-                      </ul>
-                      <p className="summary-note">
-                        Guarda este código. Más adelante podrás usarlo para
-                        consultar o cancelar tu reserva cuando el sistema esté
-                        conectado al backend.
-                      </p>
-                    </div>
-                  )}
-                </form>
+                <div className="form-group">
+                  <label htmlFor="email">Correo electrónico</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="tuemail@ejemplo.com"
+                    required={!isUserLoggedIn}
+                    readOnly={isUserLoggedIn}
+                    style={isUserLoggedIn ? { backgroundColor: "#f5f5f5", cursor: "not-allowed" } : {}}
+                  />
+                </div>
               </div>
 
-              {/* COLUMNA LATERAL */}
-              <aside className="reservation-info">
-                <h3>Antes de tu visita</h3>
-                <p>
-                  Te recomendamos llegar 10 minutos antes de la hora elegida
-                  para asegurar que tu mesa esté lista y puedas acomodarte con
-                  calma.
-                </p>
-                <ul>
-                  <li>
-                    Las reservas se guardan con un tiempo de tolerancia de 15
-                    minutos.
-                  </li>
-                </ul>
-                <p>
-                  Si tienes alguna alergia o requerimiento especial, escríbelo
-                  en los comentarios para que el equipo pueda prepararse.
-                </p>
-              </aside>
-            </div>
+              {/* Teléfono */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="phone">Teléfono de contacto</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Ej. 55 1234 5678"
+                    readOnly={isUserLoggedIn}
+                    style={isUserLoggedIn ? { backgroundColor: "#f5f5f5", cursor: "not-allowed" } : {}}
+                  />
+                </div>
+              </div>
 
-            {/* BOTÓN VOLVER AL INICIO */}
-            <div className="back-home-container">
-              <Link to="/" className="btn-back-home">
-                ← Volver al inicio
-              </Link>
-            </div>
+              {/* Fecha, hora, personas */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="date">Fecha</label>
+                  <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="time">Hora aproximada</label>
+                  <input
+                    type="time"
+                    id="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="people">Número de personas</label>
+                  <select
+                    id="people"
+                    name="people"
+                    value={formData.people}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="1">1 persona</option>
+                    <option value="2">2 personas</option>
+                    <option value="3">3 personas</option>
+                    <option value="4">4 personas</option>
+                    <option value="5">5 personas</option>
+                    <option value="6">6 personas</option>
+                    <option value="7">7 personas</option>
+                    <option value="8">8 personas</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Zona preferida */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="tableArea">Preferencia de zona</label>
+                  <select
+                    id="tableArea"
+                    name="tableArea"
+                    value={formData.tableArea}
+                    onChange={handleChange}
+                  >
+                    <option value="">Sin preferencia</option>
+                    {tableAreas.map((area) => (
+                      <option key={area.id} value={area.label}>
+                        {area.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Comentarios */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="comments">
+                    Comentarios o peticiones especiales
+                  </label>
+                  <textarea
+                    id="comments"
+                    name="comments"
+                    value={formData.comments}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="Ej. Cumpleaños, alergias, silla para bebé..."
+                  />
+                </div>
+              </div>
+
+              {/* Botón enviar */}
+              <div className="form-actions">
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creando reserva..." : "Crear reserva"}
+                </button>
+              </div>
+
+              {/* RESUMEN DE RESERVA CONFIRMADA */}
+              {reservationSummary && (
+                <div className="reservation-summary">
+                  <h3>Tu reserva ha sido registrada</h3>
+                  <p className="summary-code">
+                    Código de reserva:{" "}
+                    <span>{reservationSummary.code}</span>
+                  </p>
+                  <ul>
+                    <li>
+                      <strong>Nombre:</strong> {reservationSummary.name}
+                    </li>
+                    <li>
+                      <strong>Correo:</strong> {reservationSummary.email}
+                    </li>
+                    {reservationSummary.phone && (
+                      <li>
+                        <strong>Teléfono:</strong>{" "}
+                        {reservationSummary.phone}
+                      </li>
+                    )}
+                    <li>
+                      <strong>Fecha:</strong> {reservationSummary.date}
+                    </li>
+                    <li>
+                      <strong>Hora:</strong> {reservationSummary.time}
+                    </li>
+                    <li>
+                      <strong>Personas:</strong> {reservationSummary.people}
+                    </li>
+                    <li>
+                      <strong>Zona:</strong> {reservationSummary.area}
+                    </li>
+                  </ul>
+                  <p className="summary-note">
+                    Guarda este código. Más adelante podrás usarlo para
+                    consultar o cancelar tu reserva.
+                  </p>
+                </div>
+              )}
+            </form>
           </div>
+
+          {/* COLUMNA LATERAL */}
+          <aside className="reservation-info">
+            <h3>Antes de tu visita</h3>
+            <p>
+              Te recomendamos llegar 10 minutos antes de la hora elegida
+              para asegurar que tu mesa esté lista y puedas acomodarte con
+              calma.
+            </p>
+            <ul>
+              <li>
+                Las reservas se guardan con un tiempo de tolerancia de 15
+                minutos.
+              </li>
+            </ul>
+            <p>
+              Si tienes alguna alergia o requerimiento especial, escríbelo
+              en los comentarios para que el equipo pueda prepararse.
+            </p>
+          </aside>
+        </div>
+
+        {/* BOTÓN VOLVER AL INICIO */}
+        <div className="back-home-container">
+          <Link to="/" className="btn-back-home">
+            ← Volver al inicio
+          </Link>
+        </div>
+      </div>
     </section>
   );
 }

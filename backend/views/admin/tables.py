@@ -76,15 +76,6 @@ def edit_table_area(request):
         "tables": tables_serializer.data
     }, status=201)
 
-def get_table_areas(request):
-    if not request.method == "GET":
-        return HttpResponse(status=405)
-
-    table_areas = TableArea.objects.all()
-    serializer = ReadTableAreaSerializer(table_areas, many=True)
-
-    return JsonResponse({"table_areas": serializer.data}, status=200)
-
 def create_table(request):
     if not request.method == "POST":
         return HttpResponse(status=405)

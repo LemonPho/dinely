@@ -516,7 +516,7 @@ export async function getTableAreas() {
 
     response.error = apiResponse.status === 500;
     response.status = apiResponse.status;
-    response.tableAreas = apiResponse.status === 200 ? apiResult.table_areas : undefined;
+    response.tableAreas = apiResponse.status === 200 ? apiResult.table_areas : [];
   } catch (error) {
     response.error = true;
   }
