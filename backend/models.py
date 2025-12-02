@@ -71,7 +71,7 @@ class TableArea(models.Model):
 class Table(models.Model):
     code = models.CharField(max_length=64, unique=True)
     capacity = models.PositiveIntegerField()
-    state = models.CharField()
+    state = models.CharField(max_length=64)
     area = models.ForeignKey(TableArea, on_delete=models.SET_NULL, related_name="tables", null=True)
     notes = models.CharField(max_length=2048, null=True, blank=True)
     class Meta:
@@ -89,7 +89,7 @@ class Reservation(models.Model):
     date_time = models.DateTimeField()
     table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="reservations", null=True)
     amount_people = models.PositiveIntegerField()
-    state = models.CharField()
+    state = models.CharField(max_length=64)
     notes = models.CharField(max_length=2048, null=True, blank=True)
 
 #Asi el restaurante puede tener varios categorias y nos facilita obtener cuales son los categorias disponibles
@@ -110,7 +110,7 @@ class Bill(models.Model):
     table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="accounts", null=True)
     waiter = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="accounts", null=True)
     date_time = models.DateTimeField()
-    state = models.CharField()
+    state = models.CharField(max_length=64)
     total = models.FloatField()
     total_paid = models.FloatField()
     tip = models.IntegerField()

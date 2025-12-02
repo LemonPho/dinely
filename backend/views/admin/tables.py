@@ -197,15 +197,3 @@ def delete_table(request):
 
     return HttpResponse(status=201)
 
-def get_tables(request):
-    if not request.method == "GET":
-        return HttpResponse(status=405)
-
-    if not request.user.is_authenticated or not request.user.is_admin:
-        return HttpResponse(status=401)
-
-    tables = Table.objects.all()
-    serializer = ReadTableSerializer(tables, many=True)
-
-    return JsonResponse({"tables": serializer.data}, status=200)
-

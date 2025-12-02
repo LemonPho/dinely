@@ -77,15 +77,6 @@ def edit_plate_category(request):
         "plates": plates_serializer.data
     }, status=201)
 
-def get_plate_categories(request):
-    if not request.method == "GET":
-        return HttpResponse(status=405)
-
-    plate_categories = PlateCategory.objects.all()
-    serializer = ReadPlateCategorySerializer(plate_categories, many=True)
-
-    return JsonResponse({"plate_categories": serializer.data}, status=200)
-
 def create_plate(request):
     if not request.method == "POST":
         return HttpResponse(status=405)
@@ -206,15 +197,3 @@ def delete_plate(request):
     plate.delete()
 
     return HttpResponse(status=201)
-
-def get_plates(request):
-    if not request.method == "GET":
-        return HttpResponse(status=405)
-
-    if not request.user.is_authenticated or not request.user.is_admin:
-        return HttpResponse(status=401)
-
-    plates = Plate.objects.all()
-    serializer = ReadPlateSerializer(plates, many=True)
-
-    return JsonResponse({"plates": serializer.data}, status=200)

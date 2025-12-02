@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { submitLogin } from "../fetch/authentication";
+import { useMessagesContext } from "../application-context/messages-context";
 import "../styles/global.css";
 
 export default function Login() {
+  const { setErrorMessage, resetMessages } = useMessagesContext();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -16,11 +22,37 @@ export default function Login() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-    // 🔌 AQUÍ LUEGO VA EL BACKEND
-    // hay una funcion en /fetch que tiene para hacer login
+    const response = await submitLogin(formData);
+
+    if (response.error || response.status === 500) {
+      setError("Error en el servidor. Intenta de nuevo.");
+      setLoading(false);
+      return;
+    }
+
+    if (response.status === 404) {
+      setError("Email no encontrado.");
+      setLoading(false);
+      return;
+    }
+
+    if (response.status === 400) {
+      setError("Email o contraseña incorrectos.");
+      setLoading(false);
+      return;
+    }
+
+    if (response.status === 200) {
+      navigate("/admin/dashboard");
+      return;
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -33,6 +65,8 @@ export default function Login() {
               </p>
 
               <form className="auth-form" onSubmit={handleSubmit}>
+                {error && <p className="error-message">{error}</p>}
+                
                 <div className="form-group">
                   <label htmlFor="emailLogin">Correo electrónico</label>
                   <input
@@ -43,6 +77,7 @@ export default function Login() {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    disabled={loading}
                   />
                 </div>
 
@@ -56,11 +91,12 @@ export default function Login() {
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    disabled={loading}
                   />
                 </div>
 
-                <button type="submit" className="btn-primary auth-btn">
-                  Iniciar sesión
+                <button type="submit" className="btn-primary auth-btn" disabled={loading}>
+                  {loading ? "Iniciando sesión..." : "Iniciar sesión"}
                 </button>
               </form>
 

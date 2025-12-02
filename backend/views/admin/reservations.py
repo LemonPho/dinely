@@ -97,15 +97,3 @@ def delete_reservation(request):
     # Return only status code (no data)
     return HttpResponse(status=201)
 
-def get_reservations(request):
-    if not request.method == "GET":
-        return HttpResponse(status=405)
-
-    if not request.user.is_authenticated or not request.user.is_admin:
-        return HttpResponse(status=401)
-
-    reservations = Reservation.objects.all()
-    serializer = ReadReservationSerializer(reservations, many=True)
-
-    return JsonResponse({"reservations": serializer.data}, status=200)
-

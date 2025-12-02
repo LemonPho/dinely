@@ -9,9 +9,20 @@ from backend.views.admin.validators import validate_create_user, validate_edit_u
 from backend.views.authentication.utils import generate_password_setup_token
 from backend.email_service import send_password_setup_email
 
+def is_user_admin(request):
+    """Check if user is authenticated and is an admin"""
+    # Try session authentication first
+    if request.user.is_authenticated and hasattr(request.user, 'is_admin') and request.user.is_admin:
+        return True
+    
+    # Fall back to token authentication from cookies
+    # This would require implementing token validation
+    # For now, we'll rely on session auth
+    return False
+
 def create_user(request):
     #checar si es admin y que este actualmente en una cuenta (por cualquier cosa)
-    if not request.user.is_admin or not request.user.is_authenticated:
+    if not is_user_admin(request):
         return HttpResponse(status=401)
 
     if request.method != "POST":
