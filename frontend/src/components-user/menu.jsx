@@ -7,6 +7,9 @@ import polloImg from "../assets/menu/pollo.jpg";
 import limonadaImg from "../assets/menu/limonada.jpg";
 
 export default function Menu() {
+  
+
+
   return (
     <section className="menu-page">
       <div className="container">
