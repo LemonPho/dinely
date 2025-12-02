@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth import get_user_model
 from .models import (
     TableArea, Table, Reservation, PlateCategory, 
-    Plate, Account, AccountPlate
+    Plate, Bill, BillPlate
 )
 
 User = get_user_model()
@@ -62,16 +62,16 @@ class PlateAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
     raw_id_fields = ('category',)
 
-@admin.register(Account)
-class AccountAdmin(admin.ModelAdmin):
+@admin.register(Bill)
+class BillAdmin(admin.ModelAdmin):
     list_display = ('code', 'table', 'waiter', 'date_time', 'state', 'total', 'total_paid', 'tip')
     list_filter = ('state', 'date_time')
     search_fields = ('code',)
     raw_id_fields = ('table', 'waiter')
     date_hierarchy = 'date_time'
 
-@admin.register(AccountPlate)
-class AccountPlateAdmin(admin.ModelAdmin):
+@admin.register(BillPlate)
+class BillPlateAdmin(admin.ModelAdmin):
     list_display = ('id', 'plate', 'account', 'notes')
     list_filter = ('account',)
     search_fields = ('notes',)

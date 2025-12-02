@@ -105,7 +105,7 @@ class Plate(models.Model):
     class Meta:
         ordering = ["category__label", "name"]
 
-class Account(models.Model):
+class Bill(models.Model):
     code = models.CharField(max_length=16) # CUE-######
     table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="accounts", null=True)
     waiter = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="accounts", null=True)
@@ -115,9 +115,9 @@ class Account(models.Model):
     total_paid = models.FloatField()
     tip = models.IntegerField()
 
-#Table de union entre cuentas y platos, es para tener varios platos en una cuenta
-class AccountPlate(models.Model):
+#Tabla de union entre cuentas y platos, es para tener varios platos en una cuenta
+class BillPlate(models.Model):
     plate = models.ForeignKey(Plate, on_delete=models.CASCADE, related_name="accounts", null=True)
-    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="plates", null=True)
+    account = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name="plates", null=True)
     notes = models.CharField(max_length=1024)
 

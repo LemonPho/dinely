@@ -8,7 +8,6 @@ import { createUser, editUser, deleteUser, fetchUsers } from "../fetch/Admin.jsx
 
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 
-
 export default function AdminUsersPage() {
   const { openedModal, openModal, closeModal } = useOpenersContext();
   const { setErrorMessage, setSuccessMessage, setLoadingMessage, resetMessages } = useMessagesContext();
@@ -160,6 +159,7 @@ export default function AdminUsersPage() {
         // Usar el usuario creado desde la respuesta
         if(userResponse.user){
           setUsers([...users, userResponse.user]);
+          [...users, userResponse.user]
         }
         setSuccessMessage("Usuario creado con exito! El usuario debe revisar su correo para crear la contraseña");
       } else {

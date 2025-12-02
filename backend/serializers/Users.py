@@ -4,10 +4,10 @@ from django.contrib.auth import get_user_model
 #Esto se usa cuando se registra una cuenta de manera normal
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8, style={'input_type': 'password'})
-    
+
     class Meta:
         model = get_user_model()
-        fields = ['email', 'name', 'password']
+        fields = ['email', 'name', 'password', 'wowowow']
         extra_kwargs = {
             'email': {'required': True},
         }
@@ -44,11 +44,6 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         instance.is_kitchen = validated_data.get('is_kitchen', instance.is_kitchen)
         instance.save()
         return instance
-
-class UserListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = get_user_model()
-        fields = ['id', 'name', 'email', 'is_admin', 'is_waiter', 'is_kitchen']
 
 class UserReadSerializer(serializers.ModelSerializer):
     class Meta:

@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponse, JsonResponse
 from backend.serializers.users import UserReadSerializer
 
-
 from backend.serializers.users import AdminUserCreateSerializer
 
 from backend.views.admin.validators import validate_create_user, validate_edit_user
@@ -57,24 +56,14 @@ def list_users(request):
     return JsonResponse(serializer.data, safe=False)
 
 def edit_user(request):
-    if not request.method == "POST":
+    if request.method != "POST":
         return HttpResponse(status=405)
 
+    #is_authenticated = ingresado en una cuenta
     if not request.user.is_authenticated or not request.user.is_admin:
         return HttpResponse(status=401)
 
     data = json.loads(request.body)
-    user_id = data.get("id", False)
-
-    if not user_id:
-        return HttpResponse(status=400)
-
-    # Validar que el usuario existe
-    User = get_user_model()
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return HttpResponse(status=404)
 
     # Validar los datos usando el validador
     response = validate_edit_user(data)
@@ -85,15 +74,16 @@ def edit_user(request):
         return JsonResponse(response, status=400)
 
     # Actualizar el usuario usando el serializer
-    serializer = AdminUserCreateSerializer(user, data=data, partial=True)
+    serializer = AdminUserCreateSerializer(response["user"], data=data, partial=True)
     if not serializer.is_valid():
         print(serializer.errors)
-        return JsonResponse(serializer.errors, status=400)
+        return JsonResponse(response, status=400)
 
     updated_user = serializer.save()
 
     # Después de usar el serializer de actualización, usar el de lectura
     serializer = UserReadSerializer(updated_user)
+
 
     return JsonResponse(serializer.data, status=201)
 
