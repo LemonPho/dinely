@@ -21,7 +21,7 @@ views/
 Vistas relacionadas con operaciones que solo los administradores pueden realizar.
 Es muy importante que cualquiera funcion de view de admin tenga:
 ```python
-if not request.user.is_admin or not request.user.is_authenticated:
+if  not request.user.is_authenticated or not request.user.is_admin
     return HttpResponse(status=401)
 ```
 Si no lo tiene, entonces cualquier usuario o persona en general puede ejecutar esas funciones

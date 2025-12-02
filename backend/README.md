@@ -37,8 +37,8 @@ Modelo de usuario personalizado que extiende `AbstractUser`:
 - `Reservation`: Reservaciones de clientes
 - `PlateCategory`: Categorías de platillos
 - `Plate`: Platillos del menú
-- `Account`: Cuentas de mesas
-- `AccountPlate`: Relación entre cuentas y platillos
+- `Bill`: Cuentas de mesas
+- `BillPlate`: Relación entre cuentas y platillos
 
 ## Rutas de la API
 

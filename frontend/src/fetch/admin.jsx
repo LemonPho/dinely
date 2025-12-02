@@ -77,7 +77,7 @@ export async function editUser(formData) {
       }),
     });
 
-    const apiResult = await apiResponse.json();
+    const apiResult = apiResponse.status === 400 || apiResponse.status === 201 ? await apiResponse.json() : false;
 
     if (apiResponse.status === 201) {
       result.user = apiResult;
