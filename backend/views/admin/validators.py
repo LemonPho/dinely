@@ -313,5 +313,43 @@ def validate_create_reservation(data):
     if notes and len(notes) > 2048:
         result["valid_notes"] = False
         result["okay"] = False
+    
+    return result
+
+def create_validate_bill(data):
+    result = {
+        "valid_reservation": True,
+        "valid_total_amount": True,
+        "valid_status": True,
+        "data": data,
+        "okay": True
+    }
+
+    reservation = data.get("reservation", False)
+    total_amount = data.get("total_amount", False)
+    status = data.get("status", False)
+
+    # Validar que exista una reserva asociada
+    if not reservation:
+        result["valid_reservation"] = False
+        result["okay"] = False
+    else:
+        # Validar que la reserva exista en la BD
+        try:
+            from ..models import Reservation
+            Reservation.objects.get(id=reservation)
+        except Reservation.DoesNotExist:
+            result["valid_reservation"] = False
+            result["okay"] = False
+
+    # Validar que el monto sea positivo
+    if not total_amount or total_amount < 0:
+        result["valid_total_amount"] = False
+        result["okay"] = False
+
+    # Validar estado permitido
+    if not status or status not in ["pendiente", "pagada"]:
+        result["valid_status"] = False
+        result["okay"] = False
 
     return result
