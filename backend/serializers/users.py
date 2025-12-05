@@ -7,7 +7,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ['email', 'name', 'password', 'wowowow']
+        fields = ['email', 'password']
         extra_kwargs = {
             'email': {'required': True},
         }
@@ -16,6 +16,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         User = get_user_model()
         password = validated_data.pop("password")
         user = User(**validated_data)
+        user.is_active = False
         user.set_password(password)
         user.save()
         return user

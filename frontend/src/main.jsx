@@ -23,6 +23,8 @@ import EmployeeAccount from "./components-employee/employee-account.jsx";
 import EmployeeTables from "./components-employee/employee-tables.jsx";
 import EmployeeKitchen from "./components-employee/employee-kitchen.jsx";
 import ReviewsPage from "./components-user/reviews.jsx";
+import RegisterPage from "./components-user/register.jsx";
+import VerifyEmail from "./components-user/verify-email.jsx";
 
 // Admin navigation configuration
 export const adminNavItems = [
@@ -58,12 +60,14 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 <Route path="" element={<Layout />}>
                   <Route path="/" element={<MainPage />} />
                   <Route path="/reserva" element={<Reserva />} />
+                  <Route path="/registrar" element={<RegisterPage />} />
                   <Route path="/menu" element={<Menu />} />
                   <Route path="/ubicacion" element={<Ubicacion />} />
                   <Route path="/mis-reservas" element={<MisReservas />} />
                   <Route path="/opiniones" element={<ReviewsPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/set-password/:uid/:token" element={<SetPassword />} />
+                  <Route path="/verify-email/:code" element={<VerifyEmail />} />
                 </Route>
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminDashboard />} />

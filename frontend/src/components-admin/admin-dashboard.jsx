@@ -1,49 +1,74 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/global.css";
 import "../styles/admin.css";
+import { getReservations } from "../fetch/admin.jsx";
 
 export default function AdminDashboardPage() {
-  // Mock data - no API calls
+  // Mock data for stats - keeping as requested
   const mockStats = {
     tablesOccupied: 65,
     totalTables: 20,
     currentAccounts: 3,
     currentAccountsTotal: 2480.00,
-    upcomingReservations: [
-      {
-        id: 1,
-        date: "2024-01-15",
-        time: "19:00",
-        partySize: 4,
-        customerName: "John Doe",
-        tableNumber: 5,
-      },
-      {
-        id: 2,
-        date: "2024-01-15",
-        time: "19:30",
-        partySize: 2,
-        customerName: "Jane Smith",
-        tableNumber: 12,
-      },
-      {
-        id: 3,
-        date: "2024-01-15",
-        time: "20:00",
-        partySize: 6,
-        customerName: "Mike Johnson",
-        tableNumber: 8,
-      },
-      {
-        id: 4,
-        date: "2024-01-15",
-        time: "20:30",
-        partySize: 3,
-        customerName: "Sarah Williams",
-        tableNumber: 15,
-      },
-    ],
   };
+
+  // Real data for reservations
+  const [upcomingReservations, setUpcomingReservations] = useState([]);
+  const [reservationsLoading, setReservationsLoading] = useState(true);
+
+  // Transform reservation data from API to component format
+  function transformReservation(reservation) {
+    const dateTime = new Date(reservation.date_time);
+    const date = dateTime.toISOString().split('T')[0];
+    const time = dateTime.toTimeString().split(' ')[0].substring(0, 5);
+    
+    return {
+      id: reservation.id,
+      date: date,
+      time: time,
+      partySize: reservation.amount_people,
+      customerName: reservation.name,
+      tableNumber: reservation.table?.code || "Sin asignar",
+    };
+  }
+
+  // Filter reservations for today and upcoming active ones
+  function filterUpcomingReservations(reservations) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    return reservations
+      .filter(res => {
+        if (res.state !== "active") return false;
+        const resDate = new Date(res.date_time);
+        resDate.setHours(0, 0, 0, 0);
+        return resDate >= now;
+      })
+      .sort((a, b) => new Date(a.date_time) - new Date(b.date_time))
+      .slice(0, 10); // Limit to 10 most upcoming
+  }
+
+  // Load reservations on mount
+  useEffect(() => {
+    async function loadReservations() {
+      setReservationsLoading(true);
+      const response = await getReservations();
+      setReservationsLoading(false);
+      
+      if (response.error || response.status === 500) {
+        console.error("Error loading reservations");
+        return;
+      }
+      
+      if (response.status === 200 && response.reservations) {
+        const upcoming = filterUpcomingReservations(response.reservations);
+        const transformed = upcoming.map(transformReservation);
+        setUpcomingReservations(transformed);
+      }
+    }
+    
+    loadReservations();
+  }, []);
 
   const occupiedPercentage = Math.round(
     (mockStats.tablesOccupied / mockStats.totalTables) * 100
@@ -78,7 +103,7 @@ export default function AdminDashboardPage() {
         doc.text(`Mesas Ocupadas: ${mockStats.tablesOccupied} de ${mockStats.totalTables} (${occupiedPercentage}%)`, 20, yPos);
         yPos += 10;
         
-        doc.text(`Reservaciones Próximas: ${mockStats.upcomingReservations.length}`, 20, yPos);
+        doc.text(`Reservaciones Próximas: ${upcomingReservations.length}`, 20, yPos);
         yPos += 10;
         
         doc.text(`Cuentas Actuales: ${mockStats.currentAccounts}`, 20, yPos);
@@ -93,7 +118,7 @@ export default function AdminDashboardPage() {
         yPos += 10;
         
         doc.setFontSize(10);
-        mockStats.upcomingReservations.forEach((reservation) => {
+        upcomingReservations.forEach((reservation) => {
           if (yPos > 270) {
             doc.addPage();
             yPos = 20;
@@ -156,9 +181,9 @@ export default function AdminDashboardPage() {
           <div className="admin-stat-content">
             <h3>Reservaciones Próximas</h3>
             <div className="admin-stat-value">
-              {mockStats.upcomingReservations.length}
+              {reservationsLoading ? "..." : upcomingReservations.length}
             </div>
-            <p className="admin-stat-detail">Hoy</p>
+            <p className="admin-stat-detail">Próximas</p>
           </div>
         </div>
 
@@ -178,22 +203,32 @@ export default function AdminDashboardPage() {
 
       <div className="admin-content-card">
         <h2>Reservaciones Próximas</h2>
-        <div className="admin-reservations-list">
-          {mockStats.upcomingReservations.map((reservation) => (
-            <div key={reservation.id} className="admin-reservation-item">
-              <div className="admin-reservation-time">
-                <span className="admin-reservation-hour">{reservation.time}</span>
-                <span className="admin-reservation-date">{reservation.date}</span>
-              </div>
-              <div className="admin-reservation-details">
-                <div className="admin-reservation-name">{reservation.customerName}</div>
-                <div className="admin-reservation-info">
-                  Mesa {reservation.tableNumber} · Grupo de {reservation.partySize}
+        {reservationsLoading ? (
+          <div style={{ textAlign: "center", padding: "2rem" }}>
+            <p>Cargando reservaciones...</p>
+          </div>
+        ) : upcomingReservations.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "2rem", color: "#666" }}>
+            <p>No hay reservaciones próximas</p>
+          </div>
+        ) : (
+          <div className="admin-reservations-list">
+            {upcomingReservations.map((reservation) => (
+              <div key={reservation.id} className="admin-reservation-item">
+                <div className="admin-reservation-time">
+                  <span className="admin-reservation-hour">{reservation.time}</span>
+                  <span className="admin-reservation-date">{reservation.date}</span>
+                </div>
+                <div className="admin-reservation-details">
+                  <div className="admin-reservation-name">{reservation.customerName}</div>
+                  <div className="admin-reservation-info">
+                    Mesa {reservation.tableNumber} · Grupo de {reservation.partySize}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

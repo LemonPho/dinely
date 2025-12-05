@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMessagesContext } from "../application-context/messages-context.jsx";
+import { useUserContext } from "../application-context/user-context.jsx";
 import { getUserReservation, editUserReservation, cancelUserReservation, getTableAreas } from "../fetch/user.jsx";
 import Messages from "../util-components/messages.jsx";
 import "../styles/global.css";
 
 export default function MisReservas() {
   const { setErrorMessage, setSuccessMessage, resetMessages } = useMessagesContext();
+  const { user, userLoading } = useUserContext();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState({
     code: "",
@@ -20,6 +23,7 @@ export default function MisReservas() {
   const [isEditing, setIsEditing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [tableAreas, setTableAreas] = useState([]);
+  const [autoLoading, setAutoLoading] = useState(false);
 
   // Load table areas on mount
   useEffect(() => {
@@ -32,6 +36,28 @@ export default function MisReservas() {
 
     loadTableAreas();
   }, []);
+
+  // Auto-fetch user's reservation if logged in
+  useEffect(() => {
+    async function loadUserReservation() {
+      if (userLoading) return;
+      
+      if (user && user.email) {
+        setAutoLoading(true);
+        const response = await getUserReservation(null, user.email);
+        setAutoLoading(false);
+        
+        if (response.status === 200 && response.reservation) {
+          const transformedReservation = transformReservationData(response.reservation);
+          setReservation(transformedReservation);
+          setEditDataForm(transformedReservation);
+        }
+        // If 404, user has no reservation - that's fine, we'll show the message
+      }
+    }
+
+    loadUserReservation();
+  }, [user, userLoading]);
 
   function formatDateTimeForDisplay(dateTime) {
     if (!dateTime) return { date: "", time: "" };
@@ -225,6 +251,8 @@ export default function MisReservas() {
   };
 
   const isReservationActive = reservation?.state === "active";
+  const isLoggedIn = user && !userLoading;
+  const hasNoReservation = isLoggedIn && !autoLoading && !reservation;
 
   return (
     <section className="my-reservations-page">
@@ -234,263 +262,481 @@ export default function MisReservas() {
           <p className="my-res-eyebrow">Mis reservas</p>
           <h1>Consulta, modifica o cancela tu reserva</h1>
           <p>
-            Ingresa el código de tu reserva o tu correo electrónico para
-            ver los detalles. Desde aquí podrás modificar algunos datos o
-            cancelar la reserva si ya no la necesitas.
+            {isLoggedIn 
+              ? "Aquí puedes ver, modificar o cancelar tu reserva actual."
+              : "Ingresa el código de tu reserva o tu correo electrónico para ver los detalles. Desde aquí podrás modificar algunos datos o cancelar la reserva si ya no la necesitas."}
           </p>
         </header>
 
-        <div className="my-reservations-grid">
-          {/* TARJETA DE BÚSQUEDA */}
-          <section className="my-res-card">
-            <h2>Buscar mi reserva</h2>
-            <form onSubmit={handleReservationSearch} className="my-res-search-form">
+        {isLoggedIn ? (
+          // LOGGED IN USER VIEW
+          <div className="my-reservations-grid">
+            <section className="my-res-card my-res-detail-card" style={{ gridColumn: "1 / -1" }}>
+              <h2>Mi Reserva</h2>
               <Messages />
-              <div className="form-group">
-                <label htmlFor="code">Código de reserva</label>
-                <input
-                  id="code"
-                  name="code"
-                  type="text"
-                  placeholder="Ej. RES-ABC123"
-                  value={search.code}
-                  onChange={handleSearchChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="emailBusqueda">Correo electrónico</label>
-                <input
-                  id="emailBusqueda"
-                  name="email"
-                  type="email"
-                  placeholder="tuemail@ejemplo.com"
-                  value={search.email}
-                  onChange={handleSearchChange}
-                />
-              </div>
-
-              <p style={{ fontSize: "0.875rem", color: "#666", marginTop: "-0.5rem", marginBottom: "1rem" }}>
-                Ingresa al menos uno de los campos para buscar tu reserva
-              </p>
-
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={isSearching}
-              >
-                {isSearching ? "Buscando..." : "Buscar reserva"}
-              </button>
-            </form>
-          </section>
-
-          {/* TARJETA DE DETALLE / EDICIÓN */}
-          <section className="my-res-card my-res-detail-card">
-            <h2>Detalle de la reserva</h2>
-
-            {!reservation && (
-              <p className="my-res-empty">
-                Aquí verás los detalles de tu reserva una vez que la
-                busques. Introduce tu código o email en el formulario de la
-                izquierda.
-              </p>
-            )}
-
-            {reservation && (
-              <>
-                <div className="my-res-status-row">
-                  <span className="my-res-code">{reservation.code}</span>
-                  <span
-                    className={[
-                      "my-res-status-pill",
-                      isReservationActive ? "status-activa" : "status-cancelada",
-                    ].join(" ")}
-                  >
-                    {isReservationActive ? "Activa" : "Cancelada"}
-                  </span>
+              
+              {autoLoading ? (
+                <div style={{ textAlign: "center", padding: "2rem" }}>
+                  <p>Cargando tu reserva...</p>
                 </div>
-
-                {!editMode && (
-                  <div className="my-res-summary">
-                    <ul>
-                      <li>
-                        <strong>Nombre:</strong> {reservation.name}
-                      </li>
-                      <li>
-                        <strong>Correo:</strong> {reservation.email}
-                      </li>
-                      {reservation.phone && (
-                        <li>
-                          <strong>Teléfono:</strong> {reservation.phone}
-                        </li>
-                      )}
-                      <li>
-                        <strong>Fecha:</strong> {reservation.date}
-                      </li>
-                      <li>
-                        <strong>Hora:</strong> {reservation.time}
-                      </li>
-                      <li>
-                        <strong>Personas:</strong> {reservation.people}
-                      </li>
-                      <li>
-                        <strong>Zona:</strong> {reservation.area}
-                      </li>
-                      {reservation.comments && (
-                        <li>
-                          <strong>Comentarios:</strong> {reservation.comments}
-                        </li>
-                      )}
-                    </ul>
+              ) : hasNoReservation ? (
+                <div style={{ textAlign: "center", padding: "2rem" }}>
+                  <p className="my-res-empty" style={{ marginBottom: "1.5rem" }}>
+                    No tienes ninguna reserva actualmente.
+                  </p>
+                  <Link to="/reserva" className="btn-primary" style={{ textDecoration: "none", display: "inline-block" }}>
+                    Crear una reserva
+                  </Link>
+                </div>
+              ) : reservation ? (
+                <>
+                  <div className="my-res-status-row">
+                    <span className="my-res-code">{reservation.code}</span>
+                    <span
+                      className={[
+                        "my-res-status-pill",
+                        isReservationActive ? "status-activa" : "status-cancelada",
+                      ].join(" ")}
+                    >
+                      {isReservationActive ? "Activa" : "Cancelada"}
+                    </span>
                   </div>
-                )}
 
-                {editMode && editDataForm && (
-                  <form
-                    className="my-res-edit-form"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleSaveChanges();
-                    }}
-                  >
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label htmlFor="fechaEdit">Fecha</label>
-                        <input
-                          id="fechaEdit"
-                          name="date"
-                          type="date"
-                          value={editDataForm.date}
-                          onChange={handleEditFormDataChange}
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label htmlFor="horaEdit">Hora</label>
-                        <input
-                          id="horaEdit"
-                          name="time"
-                          type="time"
-                          value={editDataForm.time}
-                          onChange={handleEditFormDataChange}
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label htmlFor="personasEdit">Personas</label>
-                        <select
-                          id="personasEdit"
-                          name="people"
-                          value={editDataForm.people}
-                          onChange={handleEditFormDataChange}
-                        >
-                          <option value="1">1</option>
-                          <option value="2">2</option>
-                          <option value="3">3</option>
-                          <option value="4">4</option>
-                          <option value="5">5</option>
-                          <option value="6">6</option>
-                          <option value="7">7</option>
-                          <option value="8">8</option>
-                        </select>
-                      </div>
+                  {!editMode && (
+                    <div className="my-res-summary">
+                      <ul>
+                        <li>
+                          <strong>Nombre:</strong> {reservation.name}
+                        </li>
+                        <li>
+                          <strong>Correo:</strong> {reservation.email}
+                        </li>
+                        {reservation.phone && (
+                          <li>
+                            <strong>Teléfono:</strong> {reservation.phone}
+                          </li>
+                        )}
+                        <li>
+                          <strong>Fecha:</strong> {reservation.date}
+                        </li>
+                        <li>
+                          <strong>Hora:</strong> {reservation.time}
+                        </li>
+                        <li>
+                          <strong>Personas:</strong> {reservation.people}
+                        </li>
+                        <li>
+                          <strong>Zona:</strong> {reservation.area}
+                        </li>
+                        {reservation.comments && (
+                          <li>
+                            <strong>Comentarios:</strong> {reservation.comments}
+                          </li>
+                        )}
+                      </ul>
                     </div>
+                  )}
 
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label htmlFor="zonaEdit">Zona</label>
-                        <select
-                          id="zonaEdit"
-                          name="area"
-                          value={editDataForm.area}
-                          onChange={handleEditFormDataChange}
-                        >
-                          <option value="Sin preferencia">Sin preferencia</option>
-                          {tableAreas.map((area) => (
-                            <option key={area.id} value={area.label}>
-                              {area.label}
-                            </option>
-                          ))}
-                        </select>
+                  {editMode && editDataForm && (
+                    <form
+                      className="my-res-edit-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSaveChanges();
+                      }}
+                    >
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="fechaEdit">Fecha</label>
+                          <input
+                            id="fechaEdit"
+                            name="date"
+                            type="date"
+                            value={editDataForm.date}
+                            onChange={handleEditFormDataChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="horaEdit">Hora</label>
+                          <input
+                            id="horaEdit"
+                            name="time"
+                            type="time"
+                            value={editDataForm.time}
+                            onChange={handleEditFormDataChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="personasEdit">Personas</label>
+                          <select
+                            id="personasEdit"
+                            name="people"
+                            value={editDataForm.people}
+                            onChange={handleEditFormDataChange}
+                          >
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                          </select>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label htmlFor="comentariosEdit">
-                          Comentarios / peticiones
-                        </label>
-                        <textarea
-                          id="comentariosEdit"
-                          name="comments"
-                          rows="3"
-                          value={editDataForm.comments}
-                          onChange={handleEditFormDataChange}
-                        />
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="zonaEdit">Zona</label>
+                          <select
+                            id="zonaEdit"
+                            name="area"
+                            value={editDataForm.area}
+                            onChange={handleEditFormDataChange}
+                          >
+                            <option value="Sin preferencia">Sin preferencia</option>
+                            {tableAreas.map((area) => (
+                              <option key={area.id} value={area.label}>
+                                {area.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="my-res-actions">
-                      <button
-                        type="submit"
-                        className="btn-primary"
-                        disabled={isEditing}
-                      >
-                        {isEditing ? "Guardando..." : "Guardar cambios"}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        onClick={() => {
-                          setEditMode(false);
-                          setEditDataForm(reservation);
-                        }}
-                        disabled={isEditing}
-                      >
-                        Cancelar edición
-                      </button>
-                    </div>
-                  </form>
-                )}
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="comentariosEdit">
+                            Comentarios / peticiones
+                          </label>
+                          <textarea
+                            id="comentariosEdit"
+                            name="comments"
+                            rows="3"
+                            value={editDataForm.comments}
+                            onChange={handleEditFormDataChange}
+                          />
+                        </div>
+                      </div>
 
-                {/* BOTONES PRINCIPALES (MODIFICAR / CANCELAR) */}
-                {reservation && !editMode && (
-                  <div className="my-res-actions">
-                    {isReservationActive && (
-                      <>
+                      <div className="my-res-actions">
                         <button
-                          type="button"
+                          type="submit"
                           className="btn-primary"
-                          onClick={() => {
-                            setEditMode(true);
-                          }}
-                          disabled={isCancelling}
+                          disabled={isEditing}
                         >
-                          Modificar reserva
+                          {isEditing ? "Guardando..." : "Guardar cambios"}
                         </button>
                         <button
                           type="button"
                           className="btn-secondary"
-                          onClick={handleCancelReservation}
-                          disabled={isCancelling}
+                          onClick={() => {
+                            setEditMode(false);
+                            setEditDataForm(reservation);
+                          }}
+                          disabled={isEditing}
                         >
-                          {isCancelling ? "Cancelando..." : "Cancelar reserva"}
+                          Cancelar edición
                         </button>
-                      </>
-                    )}
-                    {!isReservationActive && (
-                      <p className="reservation-message">
-                        Esta reserva se encuentra cancelada.
-                      </p>
-                    )}
+                      </div>
+                    </form>
+                  )}
+
+                  {/* BOTONES PRINCIPALES (MODIFICAR / CANCELAR) */}
+                  {reservation && !editMode && (
+                    <div className="my-res-actions">
+                      {isReservationActive && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={() => {
+                              setEditMode(true);
+                            }}
+                            disabled={isCancelling}
+                          >
+                            Modificar reserva
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={handleCancelReservation}
+                            disabled={isCancelling}
+                          >
+                            {isCancelling ? "Cancelando..." : "Cancelar reserva"}
+                          </button>
+                        </>
+                      )}
+                      {!isReservationActive && (
+                        <p className="reservation-message">
+                          Esta reserva se encuentra cancelada.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </section>
+          </div>
+        ) : (
+          // NOT LOGGED IN - SHOW SEARCH FORM
+          <div className="my-reservations-grid">
+            {/* TARJETA DE BÚSQUEDA */}
+            <section className="my-res-card">
+              <h2>Buscar mi reserva</h2>
+              <form onSubmit={handleReservationSearch} className="my-res-search-form">
+                <Messages />
+                <div className="form-group">
+                  <label htmlFor="code">Código de reserva</label>
+                  <input
+                    id="code"
+                    name="code"
+                    type="text"
+                    placeholder="Ej. RES-ABC123"
+                    value={search.code}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="emailBusqueda">Correo electrónico</label>
+                  <input
+                    id="emailBusqueda"
+                    name="email"
+                    type="email"
+                    placeholder="tuemail@ejemplo.com"
+                    value={search.email}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+
+                <p style={{ fontSize: "0.875rem", color: "#666", marginTop: "-0.5rem", marginBottom: "1rem" }}>
+                  Ingresa al menos uno de los campos para buscar tu reserva
+                </p>
+
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isSearching}
+                >
+                  {isSearching ? "Buscando..." : "Buscar reserva"}
+                </button>
+              </form>
+            </section>
+
+            {/* TARJETA DE DETALLE / EDICIÓN */}
+            <section className="my-res-card my-res-detail-card">
+              <h2>Detalle de la reserva</h2>
+
+              {!reservation && (
+                <p className="my-res-empty">
+                  Aquí verás los detalles de tu reserva una vez que la
+                  busques. Introduce tu código o email en el formulario de la
+                  izquierda.
+                </p>
+              )}
+
+              {reservation && (
+                <>
+                  <div className="my-res-status-row">
+                    <span className="my-res-code">{reservation.code}</span>
+                    <span
+                      className={[
+                        "my-res-status-pill",
+                        isReservationActive ? "status-activa" : "status-cancelada",
+                      ].join(" ")}
+                    >
+                      {isReservationActive ? "Activa" : "Cancelada"}
+                    </span>
                   </div>
-                )}
-              </>
-            )}
-          </section>
-        </div>
+
+                  {!editMode && (
+                    <div className="my-res-summary">
+                      <ul>
+                        <li>
+                          <strong>Nombre:</strong> {reservation.name}
+                        </li>
+                        <li>
+                          <strong>Correo:</strong> {reservation.email}
+                        </li>
+                        {reservation.phone && (
+                          <li>
+                            <strong>Teléfono:</strong> {reservation.phone}
+                          </li>
+                        )}
+                        <li>
+                          <strong>Fecha:</strong> {reservation.date}
+                        </li>
+                        <li>
+                          <strong>Hora:</strong> {reservation.time}
+                        </li>
+                        <li>
+                          <strong>Personas:</strong> {reservation.people}
+                        </li>
+                        <li>
+                          <strong>Zona:</strong> {reservation.area}
+                        </li>
+                        {reservation.comments && (
+                          <li>
+                            <strong>Comentarios:</strong> {reservation.comments}
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {editMode && editDataForm && (
+                    <form
+                      className="my-res-edit-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSaveChanges();
+                      }}
+                    >
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="fechaEdit">Fecha</label>
+                          <input
+                            id="fechaEdit"
+                            name="date"
+                            type="date"
+                            value={editDataForm.date}
+                            onChange={handleEditFormDataChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="horaEdit">Hora</label>
+                          <input
+                            id="horaEdit"
+                            name="time"
+                            type="time"
+                            value={editDataForm.time}
+                            onChange={handleEditFormDataChange}
+                            required
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="personasEdit">Personas</label>
+                          <select
+                            id="personasEdit"
+                            name="people"
+                            value={editDataForm.people}
+                            onChange={handleEditFormDataChange}
+                          >
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="zonaEdit">Zona</label>
+                          <select
+                            id="zonaEdit"
+                            name="area"
+                            value={editDataForm.area}
+                            onChange={handleEditFormDataChange}
+                          >
+                            <option value="Sin preferencia">Sin preferencia</option>
+                            {tableAreas.map((area) => (
+                              <option key={area.id} value={area.label}>
+                                {area.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="comentariosEdit">
+                            Comentarios / peticiones
+                          </label>
+                          <textarea
+                            id="comentariosEdit"
+                            name="comments"
+                            rows="3"
+                            value={editDataForm.comments}
+                            onChange={handleEditFormDataChange}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="my-res-actions">
+                        <button
+                          type="submit"
+                          className="btn-primary"
+                          disabled={isEditing}
+                        >
+                          {isEditing ? "Guardando..." : "Guardar cambios"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => {
+                            setEditMode(false);
+                            setEditDataForm(reservation);
+                          }}
+                          disabled={isEditing}
+                        >
+                          Cancelar edición
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* BOTONES PRINCIPALES (MODIFICAR / CANCELAR) */}
+                  {reservation && !editMode && (
+                    <div className="my-res-actions">
+                      {isReservationActive && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={() => {
+                              setEditMode(true);
+                            }}
+                            disabled={isCancelling}
+                          >
+                            Modificar reserva
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={handleCancelReservation}
+                            disabled={isCancelling}
+                          >
+                            {isCancelling ? "Cancelando..." : "Cancelar reserva"}
+                          </button>
+                        </>
+                      )}
+                      {!isReservationActive && (
+                        <p className="reservation-message">
+                          Esta reserva se encuentra cancelada.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+          </div>
+        )}
 
         {/* BOTÓN VOLVER AL INICIO */}
         <div className="back-home-container">

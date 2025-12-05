@@ -96,8 +96,8 @@ export function AuthenticationProvider({ children }) {
       return;
     }
 
-    if (registerResponse.status === 200) {
-      setSuccessMessage("Account created, check your email to finalize the creation");
+    if (registerResponse.status === 201) {
+      setSuccessMessage("Cuenta creada. Por favor verifica tu correo electrónico para activar tu cuenta.");
       setLoading(false);
       setLoadingMessage("");
       return;

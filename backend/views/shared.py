@@ -20,13 +20,11 @@ def get_plates(request):
     if not request.method == "GET":
         return HttpResponse(status=405)
 
-    if not request.user.is_authenticated or not request.user.is_admin:
-        return HttpResponse(status=401)
-
     plates = Plate.objects.all()
     serializer = ReadPlateSerializer(plates, many=True)
 
     return JsonResponse({"plates": serializer.data}, status=200)
+
 
 def get_reservations(request):
     if not request.method == "GET":

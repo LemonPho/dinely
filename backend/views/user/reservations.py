@@ -77,7 +77,7 @@ def get_user_reservation(request):
     # Try to find reservation by code or email
     try:
         if code:
-            reservation = Reservation.objects.get(code=code)
+            reservation = Reservation.objects.get(code=code, state="active")
         else:
             # If searching by email, get the most recent active reservation
             reservation = Reservation.objects.filter(email=email, state="active").order_by("-date_time").first()

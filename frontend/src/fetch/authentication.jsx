@@ -204,3 +204,41 @@ export async function submitSetPassword(uid, token, password) {
 
   return response;
 }
+
+export async function verifyEmail(code) {
+  let response = {
+    error: false,
+    status: null,
+    errorMessage: null,
+  }
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/authentication/verify-email/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: code,
+      })
+    });
+    
+    const apiResult = apiResponse.status === 400 || apiResponse.status === 404 ? await apiResponse.json() : null;
+
+    if (apiResult && apiResult.error) {
+      response.errorMessage = apiResult.error;
+    }
+    
+    response.status = apiResponse.status;
+    response.error = apiResponse.status === 500;
+
+  } catch (error) {
+    response.error = true;
+    response.errorMessage = "Error al verificar el correo electrónico";
+  }
+
+  return response;
+}
