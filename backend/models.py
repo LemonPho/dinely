@@ -100,7 +100,7 @@ class Plate(models.Model):
     name = models.CharField(max_length=64)
     price = models.FloatField()
     category = models.ForeignKey(PlateCategory, on_delete=models.SET_NULL, related_name="plates", null=True)
-    description = models.CharField(max_length=2048)
+    description = models.CharField(max_length=2048, null=True, blank=True)
     
     class Meta:
         ordering = ["category__label", "name"]

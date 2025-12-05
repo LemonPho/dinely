@@ -180,7 +180,7 @@ export async function getPlateCategories() {
   }
 
   try {
-    const apiResponse = await fetch(`/api/admin/get-plate-categories/`, {
+    const apiResponse = await fetch(`/api/plates/get-plate-categories/`, {
       method: "GET",
       credentials: "include",
     });
@@ -289,7 +289,7 @@ export async function getPlates() {
   };
 
   try {
-    const apiResponse = await fetch(`/api/admin/get-plates/`, {
+    const apiResponse = await fetch(`/api/plates/get-plates/`, {
       method: "GET",
       credentials: "include",
     });

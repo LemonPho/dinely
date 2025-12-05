@@ -14,11 +14,9 @@ urlpatterns = [
     path("admin/create-plate-category/", plates.create_plate_category),
     path("admin/edit-plate-category/", plates.edit_plate_category),
     path("admin/delete-plate-category/", plates.delete_plate_category),
-    path("admin/get-plate-categories/", shared.get_plate_categories),
     path("admin/create-plate/", plates.create_plate),
     path("admin/edit-plate/", plates.edit_plate),
     path("admin/delete-plate/", plates.delete_plate),
-    path("admin/get-plates/", shared.get_plates),
 
     path("admin/create-table-area/", tables.create_table_area),
     path("admin/edit-table-area/", tables.edit_table_area),
@@ -45,4 +43,7 @@ urlpatterns = [
     path("user/edit-reservation/", user_reservations.edit_user_reservation),
     path("user/cancel-reservation/", user_reservations.cancel_user_reservation),
     path("user/get-table-areas/", shared.get_table_areas),
+
+    path("plates/get-plate-categories/", shared.get_plate_categories),
+    path("plates/get-plates/", shared.get_plates),
 ]
