@@ -1,11 +1,13 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
 import { getCsrfToken, submitLogin, submitRegistration, submitLogout } from "../fetch/authentication";
 import { useMessagesContext } from "./messages-context";
+import { useUserContext } from "./user-context";
 
 export const AuthenticationContext = createContext();
 
 export function AuthenticationProvider({ children }) {
 
+  const { retrieveCurrentUser } = useUserContext();
   const { resetMessages, setLoadingMessage, setErrorMessage, setSuccessMessage } = useMessagesContext();
 
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,7 @@ export function AuthenticationProvider({ children }) {
     if (loginResponse.status === 200) {
       setLoadingMessage("");
       setLoading(false);
+      await retrieveCurrentUser();
       navigate("/");
       return;
     }

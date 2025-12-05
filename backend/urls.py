@@ -4,6 +4,7 @@ from backend.views.admin import plates, users, tables, reservations
 from backend.views.user import reservations as user_reservations
 from backend.views import shared
 from backend.views.authentication import authentication
+from backend.views.reviews import reviews
 
 urlpatterns = [
     path("admin/create-user/", users.create_user),
@@ -38,6 +39,7 @@ urlpatterns = [
     path("authentication/register/", authentication.register),
     path("authentication/login/", authentication.login_view),
     path("authentication/set-password/", authentication.set_password),
+    path("authentication/logout/", authentication.logout_view),
 
     path("user/get-current-user/", authentication.get_current_user),
     path("user/create-reservation/", user_reservations.create_user_reservation),
@@ -45,4 +47,7 @@ urlpatterns = [
     path("user/edit-reservation/", user_reservations.edit_user_reservation),
     path("user/cancel-reservation/", user_reservations.cancel_user_reservation),
     path("user/get-table-areas/", shared.get_table_areas),
+    
+    path("review/create-review/", reviews.create_review),
+    path("review/get-reviews/", reviews.get_reviews),
 ]

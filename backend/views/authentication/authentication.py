@@ -98,3 +98,9 @@ def get_current_user(request):
     return JsonResponse({
         "user": serializer.data
     }, status=200)
+
+def logout_view(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    logout(request)
+    return HttpResponse(status=200)

@@ -48,7 +48,7 @@ export default function Login() {
     }
 
     if (response.status === 200) {
-      navigate("/admin/dashboard");
+      navigate("/");
       return;
     }
 

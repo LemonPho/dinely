@@ -22,6 +22,7 @@ import EmployeeDashboard from "./components-employee/employee-dashboard.jsx";
 import EmployeeAccount from "./components-employee/employee-account.jsx";
 import EmployeeTables from "./components-employee/employee-tables.jsx";
 import EmployeeKitchen from "./components-employee/employee-kitchen.jsx";
+import ReviewsPage from "./components-user/reviews.jsx";
 
 // Admin navigation configuration
 export const adminNavItems = [
@@ -50,8 +51,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <MessagesProvider>
       <OpenersProvider>
-        <AuthenticationProvider>
-          <UserContextProvider>
+        <UserContextProvider>
+          <AuthenticationProvider>
             <BrowserRouter>
               <Routes>
                 <Route path="" element={<Layout />}>
@@ -60,6 +61,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   <Route path="/menu" element={<Menu />} />
                   <Route path="/ubicacion" element={<Ubicacion />} />
                   <Route path="/mis-reservas" element={<MisReservas />} />
+                  <Route path="/opiniones" element={<ReviewsPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/set-password/:uid/:token" element={<SetPassword />} />
                 </Route>
@@ -79,8 +81,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 </Route>
               </Routes>
             </BrowserRouter>
-          </UserContextProvider>
-        </AuthenticationProvider>
+          </AuthenticationProvider>
+        </UserContextProvider>
       </OpenersProvider>
     </MessagesProvider>
   </React.StrictMode>

@@ -1,6 +1,7 @@
 import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
 import { employeeNavItems } from "../main.jsx";
 import { useAuthenticationContext } from "../application-context/authentication-context.jsx";
+import { useUserContext } from "../application-context/user-context.jsx";
 import Messages from "../util-components/messages.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
@@ -8,6 +9,16 @@ import "../styles/admin.css";
 export default function EmployeeLayoutPage() {
   const navigate = useNavigate();
   const { logout } = useAuthenticationContext();
+  const { user, userLoading } = useUserContext();
+
+  // Guard: If loading wait. If not authorized, redirect.
+  if (userLoading) {
+    return <div className="admin-loading">Cargando...</div>;
+  }
+  if (!user || (!user.is_admin && !user.is_waiter && !user.is_kitchen)) {
+    navigate("/", { replace: true });
+    return null;
+  }
 
   function handleLogout() {
     logout(navigate);

@@ -68,47 +68,7 @@ export default function Ubicacion() {
                   </div>
                 </div>
 
-                <div className="contact-card">
-                  <h2>Escríbenos un mensaje</h2>
-                  <p>
-                    Si tienes dudas sobre tu reserva, menú o servicios para
-                    eventos, envíanos un mensaje y te responderemos a la
-                    brevedad.
-                  </p>
-
-                  <form className="contact-form">
-                    <div className="form-group">
-                      <label htmlFor="nombreContacto">Nombre</label>
-                      <input
-                        id="nombreContacto"
-                        type="text"
-                        placeholder="Tu nombre completo"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="emailContacto">Correo electrónico</label>
-                      <input
-                        id="emailContacto"
-                        type="email"
-                        placeholder="tuemail@ejemplo.com"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="mensajeContacto">Mensaje</label>
-                      <textarea
-                        id="mensajeContacto"
-                        rows="3"
-                        placeholder="Cuéntanos en qué podemos ayudarte..."
-                      />
-                    </div>
-
-                    <button type="button" className="btn-primary">
-                      Enviar mensaje
-                    </button>
-                  </form>
-                </div>
+                
               </section>
             </div>
 

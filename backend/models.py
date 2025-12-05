@@ -121,3 +121,19 @@ class BillPlate(models.Model):
     account = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name="plates", null=True)
     notes = models.CharField(max_length=1024)
 
+
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews", null=False)
+    content = models.TextField()
+    score = models.PositiveSmallIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    title = models.CharField(max_length=100, blank=True, null=True)
+    
+    def __str__(self):
+        return f"Review by {self.user.name}: {self.title or self.content[:30]}"
+    
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Review"
+        verbose_name_plural = "Reviews"
