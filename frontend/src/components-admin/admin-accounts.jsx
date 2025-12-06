@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
+import { getBills, createBill, editBill, deleteBill } from "../fetch/admin.jsx";
+
 
 export default function AdminAccountsPage() {
   const { openedModal, openModal, closeModal, toggleDropdown, openedDropdown, closeDropdown } = useOpenersContext();
@@ -105,6 +107,20 @@ export default function AdminAccountsPage() {
     time: "",
     status: "current",
   });
+
+  const [bills, setBills] = useState([]);
+  const [billForm, setBillForm] = useState({
+    id: null,
+    reservation: "",
+    status: "pending",
+  });
+  const [billErrors, setBillErrors] = useState(null);
+
+  useEffect(() => {
+    loadBills();
+  }, []);
+
+
 
   function handleAccountClick(account) {
     setViewingAccount(account);
@@ -215,7 +231,70 @@ export default function AdminAccountsPage() {
       closeModal();
       openModal(`view-account-${viewingAccount.id}`);
     }
+  } 
+  
+  async function loadBills() {
+   const result = await getBills();
+   if (!result.error && result.status === 200) {
+     setBills(result.bills);
+   } else {
+    setBillErrors("Error al cargar Bills");
+   }
   }
+
+
+  async function handleSaveBill(e) {
+  e.preventDefault();
+  setBillErrors(null);
+
+  let result;
+  if (billForm.id) {
+    result = await editBill(billForm);
+  } else {
+    result = await createBill(billForm);
+  }
+
+  if (result.status === 201 || result.status === 200) {
+    const newBill = result.bill;
+    setBills((prev) => {
+      const idx = prev.findIndex((b) => b.id === newBill.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = newBill;
+        return copy;
+      }
+      return [newBill, ...prev];
+    });
+    setBillForm({ id: null, reservation: "", status: "pending" });
+  } else if (result.status === 400) {
+    setBillErrors(result.validationErrors);
+  } else {
+    setBillErrors("Error al guardar Bill");
+  }
+ }
+
+
+ function startEditBill(bill) {
+  setBillForm({
+    id: bill.id,
+    reservation: bill.reservation.id,
+    status: bill.status,
+  });
+ }
+
+
+ async function handleDeleteBill(id) {
+  if (!window.confirm("¿Eliminar este Bill?")) return;
+  const result = await deleteBill(id);
+  if (result.status === 204) {
+    setBills((prev) => prev.filter((b) => b.id !== id));
+  } else {
+    setBillErrors("Error al eliminar Bill");
+  }
+ }
+
+  
+  
 
   function getStatusLabel(status) {
     switch (status) {
@@ -285,6 +364,41 @@ export default function AdminAccountsPage() {
           ))}
         </div>
       </div>
+
+      {/* Gestión de Bills */}
+<div className="admin-content-card">
+  <h2>Bills</h2>
+  {billErrors && <div style={{ color: "red" }}>{JSON.stringify(billErrors)}</div>}
+
+  <form onSubmit={handleSaveBill} style={{ marginBottom: 16 }}>
+    <input
+      type="number"
+      placeholder="ID de reservación"
+      value={billForm.reservation}
+      onChange={(e) => setBillForm({ ...billForm, reservation: e.target.value })}
+    />
+    <select
+      value={billForm.status}
+      onChange={(e) => setBillForm({ ...billForm, status: e.target.value })}
+    >
+      <option value="pending">pending</option>
+      <option value="paid">paid</option>
+      <option value="cancelled">cancelled</option>
+    </select>
+    <button type="submit">{billForm.id ? "Actualizar Bill" : "Crear Bill"}</button>
+  </form>
+
+  <ul>
+    {bills.map((bill) => (
+      <li key={bill.id}>
+        Bill #{bill.id} — Reserva: {bill.reservation.id} — Estado: {bill.status}
+        <button onClick={() => startEditBill(bill)}>Editar</button>
+        <button onClick={() => handleDeleteBill(bill.id)}>Eliminar</button>
+      </li>
+    ))}
+  </ul>
+</div>
+
 
       {(viewingAccount || editingAccount || isCreating) && (
         <Modal isOpen={

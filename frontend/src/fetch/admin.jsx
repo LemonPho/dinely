@@ -846,3 +846,137 @@ export async function getReservations() {
 
   return response;
 }
+
+// ===============================
+// Bills (cuentas)
+// ===============================
+
+export async function getBills() {
+  let result = {
+    error: false,
+    status: null,
+    bills: [],
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/bills/`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+    result.bills = apiResponse.status === 200 ? apiResult : [];
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
+}
+
+export async function createBill(billData) {
+  let result = {
+    error: false,
+    status: null,
+    bill: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/admin/bills/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        reservation: billData.reservation, // ID de la reservación
+        status: billData.status,           // estado: pending, paid, cancelled
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.bill = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
+}
+
+export async function editBill(billData) {
+  let result = {
+    error: false,
+    status: null,
+    bill: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/admin/bills/${billData.id}/`, {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        reservation: billData.reservation,
+        status: billData.status,
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 200) {
+      result.bill = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
+}
+
+export async function deleteBill(billId) {
+  let result = {
+    error: false,
+    status: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/admin/bills/${billId}/`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+      },
+    });
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
+}
