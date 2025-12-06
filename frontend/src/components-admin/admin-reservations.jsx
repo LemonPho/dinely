@@ -57,8 +57,12 @@ export default function AdminReservationsPage() {
 
   function combineDateTime(date, time) {
     if (!date || !time) return null;
+    // Create datetime string in restaurant's timezone (America/Mexico_City, UTC-6)
+    // This ensures the date/time is interpreted as the restaurant's local time
     const dateTimeString = `${date}T${time}:00`;
-    return new Date(dateTimeString).toISOString();
+    
+    // Format as ISO string with restaurant's timezone offset (-06:00 for Mexico City)
+    return `${dateTimeString}-06:00`;
   }
 
   function handleReservationClick(reservation) {

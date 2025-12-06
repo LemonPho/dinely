@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
+import { getBills } from "../fetch/shared";
 import "../styles/global.css";
 import "../styles/admin.css";
 
 export default function AdminAccountsPage() {
   const { openedModal, openModal, closeModal, toggleDropdown, openedDropdown, closeDropdown } = useOpenersContext();
+
+  const [accounts, setAccounts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Mock data para mesas disponibles (solo strings)
   const availableTables = [
@@ -18,79 +22,44 @@ export default function AdminAccountsPage() {
     "mesero1", "mesero2", "mesero3", "cocinero1"
   ];
 
-  // Mock data - no API calls
-  const [accounts, setAccounts] = useState([
-    {
-      id: 1,
-      code: "CTA-001",
-      tableNumber: "5",
-      waiterName: "mesero1",
-      total: 850.00,
-      date: "2024-01-20",
-      time: "19:00",
-      status: "current",
-      items: [
-        { name: "Pollo a la parrilla", quantity: 2, price: 210 },
-        { name: "Limonada natural", quantity: 2, price: 55 },
-      ],
-    },
-    {
-      id: 2,
-      code: "CTA-002",
-      tableNumber: "12",
-      waiterName: "mesero1",
-      total: 380.00,
-      date: "2024-01-20",
-      time: "19:30",
-      status: "closed",
-      items: [
-        { name: "Hamburguesa gourmet", quantity: 2, price: 190 },
-      ],
-    },
-    {
-      id: 3,
-      code: "CTA-003",
-      tableNumber: "8",
-      waiterName: "cocinero1",
-      total: 1260.00,
-      date: "2024-01-21",
-      time: "20:00",
-      status: "current",
-      items: [
-        { name: "Pasta al pesto", quantity: 3, price: 185 },
-        { name: "Smoothie de fresa", quantity: 3, price: 70 },
-        { name: "Guacamole con totopos", quantity: 2, price: 115 },
-      ],
-    },
-    {
-      id: 4,
-      code: "CTA-004",
-      tableNumber: "15",
-      waiterName: "mesero1",
-      total: 565.00,
-      date: "2024-01-19",
-      time: "18:00",
-      status: "closed",
-      items: [
-        { name: "Bruschettas", quantity: 2, price: 130 },
-        { name: "Café latte", quantity: 3, price: 60 },
-        { name: "Papas fritas", quantity: 1, price: 120 },
-      ],
-    },
-    {
-      id: 5,
-      code: "CTA-005",
-      tableNumber: "3",
-      waiterName: "mesero1",
-      total: 370.00,
-      date: "2024-01-22",
-      time: "21:00",
-      status: "current",
-      items: [
-        { name: "Pasta al pesto", quantity: 2, price: 185 },
-      ],
-    },
-  ]);
+  // Fetch bills from API on component mount
+  useEffect(() => {
+    async function fetchBills() {
+      setIsLoading(true);
+      const response = await getBills();
+      if (response.status === 200 && response.bills) {
+        // Transform API response to match component's expected structure
+        const transformedBills = response.bills.map((bill) => {
+          const dateTime = new Date(bill.date_time);
+          const date = dateTime.toISOString().split('T')[0];
+          const time = dateTime.toTimeString().split(' ')[0].slice(0, 5);
+          
+          return {
+            id: bill.id,
+            code: bill.code,
+            tableNumber: bill.table?.code || "",
+            waiterName: bill.waiter?.name || "",
+            total: bill.total,
+            date: date,
+            time: time,
+            status: bill.state,
+            items: bill.plates?.map((billPlate) => ({
+              name: billPlate.plate?.name || "",
+              quantity: 1, // API doesn't have quantity, defaulting to 1
+              price: billPlate.plate?.price || 0,
+              notes: billPlate.notes || "",
+            })) || [],
+          };
+        });
+        setAccounts(transformedBills);
+      } else {
+        console.error("Failed to fetch bills:", response.error, response.status);
+        setAccounts([]);
+      }
+      setIsLoading(false);
+    }
+    fetchBills();
+  }, []);
 
   const [editingAccount, setEditingAccount] = useState(null);
   const [viewingAccount, setViewingAccount] = useState(null);
@@ -257,6 +226,15 @@ export default function AdminAccountsPage() {
       </div>
 
       <div className="admin-content-card">
+        {isLoading ? (
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>Cargando cuentas...</p>
+          </div>
+        ) : accounts.length === 0 ? (
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>No hay cuentas disponibles</p>
+          </div>
+        ) : (
         <div className="admin-reservations-list-vertical">
           {[...accounts].sort((a, b) => {
             // Ordenar por fecha primero, luego por hora
@@ -284,6 +262,7 @@ export default function AdminAccountsPage() {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {(viewingAccount || editingAccount || isCreating) && (

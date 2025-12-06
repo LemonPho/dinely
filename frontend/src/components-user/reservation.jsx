@@ -60,12 +60,25 @@ export default function Reserva() {
 
   function combineDateTime(date, time) {
     if (!date || !time) return null;
+    // Create datetime string in restaurant's timezone (America/Mexico_City, UTC-6)
+    // This ensures the date/time is interpreted as the restaurant's local time, not the user's browser timezone
     const dateTimeString = `${date}T${time}:00`;
-    return new Date(dateTimeString).toISOString();
+    
+    // Format as ISO string with restaurant's timezone offset (-06:00 for Mexico City)
+    // This tells the backend "this is the time in the restaurant's timezone"
+    return `${dateTimeString}-06:00`;
   }
 
   function formatDateTimeForDisplay(dateTime) {
     if (!dateTime) return { date: "", time: "" };
+    // Parse the ISO string directly to avoid timezone conversion issues
+    // Backend sends: "2025-12-05T19:13:00-06:00"
+    // Extract date and time from the ISO string directly
+    const isoMatch = dateTime.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}):\d{2}/);
+    if (isoMatch) {
+      return { date: isoMatch[1], time: isoMatch[2] };
+    }
+    // Fallback to Date object parsing if format is different
     const dt = new Date(dateTime);
     const date = dt.toISOString().split('T')[0];
     const time = dt.toTimeString().split(' ')[0].substring(0, 5);

@@ -31,18 +31,26 @@ export default function EmployeeLayoutPage() {
           <h2 className="admin-brand">Dinely Empleado</h2>
         </div>
         <nav className="admin-nav">
-          {employeeNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === "/empleado"}
-              className={({ isActive }) =>
-                `admin-nav-item ${isActive ? "active" : ""}`
+          {employeeNavItems
+            .filter((item) => {
+              // Show waiter-only items only if user is a waiter
+              if (item.waiterOnly) {
+                return user?.is_waiter === true;
               }
-            >
-              <span className="admin-nav-label">{item.label}</span>
-            </NavLink>
-          ))}
+              return true;
+            })
+            .map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === "/empleado"}
+                className={({ isActive }) =>
+                  `admin-nav-item ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="admin-nav-label">{item.label}</span>
+              </NavLink>
+            ))}
         </nav>
         <div className="admin-sidebar-footer">
           <Link to="/" className="admin-nav-item">

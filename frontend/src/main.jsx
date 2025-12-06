@@ -19,7 +19,8 @@ import AdminReservations from "./components-admin/admin-reservations.jsx";
 import AdminAccounts from "./components-admin/admin-accounts.jsx";
 import EmployeeLayout from "./components-employee/employee-layout.jsx";
 import EmployeeDashboard from "./components-employee/employee-dashboard.jsx";
-import EmployeeAccount from "./components-employee/employee-account.jsx";
+import EmployeeBill from "./components-employee/employee-bill.jsx";
+import EmployeeBills from "./components-employee/employee-bills.jsx";
 import EmployeeTables from "./components-employee/employee-tables.jsx";
 import EmployeeKitchen from "./components-employee/employee-kitchen.jsx";
 import ReviewsPage from "./components-user/reviews.jsx";
@@ -41,6 +42,7 @@ export const employeeNavItems = [
   { path: "/empleado", label: "Panel" },
   { path: "/empleado/mesas", label: "Mesas Disponibles" },
   { path: "/empleado/cocina", label: "Cocina" },
+  { path: "/empleado/cuentas", label: "Mis Cuentas", waiterOnly: true },
 ];
 
 import "./styles/global.css";
@@ -81,7 +83,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   <Route path="/empleado" element={<EmployeeDashboard />} />
                   <Route path="/empleado/mesas" element={<EmployeeTables />} />
                   <Route path="/empleado/cocina" element={<EmployeeKitchen />} />
-                  <Route path="/empleado/cuenta/:id" element={<EmployeeAccount />} />
+                  <Route path="/empleado/cuentas" element={<EmployeeBills />} />
+                  <Route path="/empleado/cuenta/:id" element={<EmployeeBill />} />
                 </Route>
               </Routes>
             </BrowserRouter>

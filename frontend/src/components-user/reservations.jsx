@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 import { useUserContext } from "../application-context/user-context.jsx";
-import { getUserReservation, editUserReservation, cancelUserReservation, getTableAreas } from "../fetch/user.jsx";
+import { getUserReservation, getUserReservations, editUserReservation, cancelUserReservation, getTableAreas } from "../fetch/user.jsx";
 import Messages from "../util-components/messages.jsx";
 import "../styles/global.css";
 
@@ -14,9 +14,11 @@ export default function MisReservas() {
   const [search, setSearch] = useState({
     code: "",
     email: "",
+    phone_number: "",
   });
 
-  const [reservation, setReservation] = useState(null);
+  const [reservations, setReservations] = useState([]);
+  const [selectedReservation, setSelectedReservation] = useState(null);
   const [editDataForm, setEditDataForm] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -37,30 +39,46 @@ export default function MisReservas() {
     loadTableAreas();
   }, []);
 
-  // Auto-fetch user's reservation if logged in
+  // Auto-fetch user's reservations if logged in
   useEffect(() => {
-    async function loadUserReservation() {
+    async function loadUserReservations() {
       if (userLoading) return;
       
       if (user && user.email) {
         setAutoLoading(true);
-        const response = await getUserReservation(null, user.email);
+        const response = await getUserReservations(user.email);
         setAutoLoading(false);
         
-        if (response.status === 200 && response.reservation) {
-          const transformedReservation = transformReservationData(response.reservation);
-          setReservation(transformedReservation);
-          setEditDataForm(transformedReservation);
+        if (response.status === 200 && response.reservations) {
+          const transformedReservations = response.reservations.map(transformReservationData);
+          setReservations(transformedReservations);
+          // Select the first active reservation, or the first one if none are active
+          const activeReservation = transformedReservations.find(r => r.state === "active");
+          if (activeReservation) {
+            setSelectedReservation(activeReservation);
+            setEditDataForm(activeReservation);
+          } else if (transformedReservations.length > 0) {
+            setSelectedReservation(transformedReservations[0]);
+            setEditDataForm(transformedReservations[0]);
+          }
         }
-        // If 404, user has no reservation - that's fine, we'll show the message
+        // If 404 or empty, user has no reservations - that's fine, we'll show the message
       }
     }
 
-    loadUserReservation();
+    loadUserReservations();
   }, [user, userLoading]);
 
   function formatDateTimeForDisplay(dateTime) {
     if (!dateTime) return { date: "", time: "" };
+    // Parse the ISO string directly to avoid timezone conversion issues
+    // Backend sends: "2025-12-05T19:13:00-06:00"
+    // Extract date and time from the ISO string directly
+    const isoMatch = dateTime.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}):\d{2}/);
+    if (isoMatch) {
+      return { date: isoMatch[1], time: isoMatch[2] };
+    }
+    // Fallback to Date object parsing if format is different
     const dt = new Date(dateTime);
     const date = dt.toISOString().split('T')[0];
     const time = dt.toTimeString().split(' ')[0].substring(0, 5);
@@ -96,38 +114,91 @@ export default function MisReservas() {
     resetMessages();
 
     // At least one field must be filled
-    if (!search.code.trim() && !search.email.trim()) {
-      setErrorMessage("Por favor ingresa el código de reserva o tu correo electrónico");
+    if (!search.code.trim() && !search.email.trim() && !search.phone_number.trim()) {
+      setErrorMessage("Por favor ingresa el código de reserva, tu correo electrónico o tu número de teléfono");
       return;
     }
 
     setIsSearching(true);
 
-    const response = await getUserReservation(
-      search.code.trim() || null,
-      search.email.trim() || null
-    );
+    // If searching by code, use get_user_reservation (single)
+    // If searching by email or phone, use get_user_reservations (multiple)
+    if (search.code.trim()) {
+      const response = await getUserReservation(
+        search.code.trim(),
+        null,
+        null
+      );
 
-    setIsSearching(false);
+      setIsSearching(false);
 
-    if (response.status === 500 || response.error) {
-      setErrorMessage("Hubo un error al intentar buscar la reservación");
-      return;
-    }
+      if (response.status === 500 || response.error) {
+        setErrorMessage("Hubo un error al intentar buscar la reservación");
+        return;
+      }
 
-    if (response.status === 404 || response.status === 400) {
-      setErrorMessage(response.errorMessage || "No se encontró la reservación");
-      setReservation(null);
-      setEditDataForm(null);
-      return;
-    }
+      if (response.status === 404 || response.status === 400) {
+        setErrorMessage(response.errorMessage || "No se encontró la reservación");
+        setReservations([]);
+        setSelectedReservation(null);
+        setEditDataForm(null);
+        return;
+      }
 
-    if (response.status === 200 && response.reservation) {
-      const transformedReservation = transformReservationData(response.reservation);
-      setReservation(transformedReservation);
-      setEditDataForm(transformedReservation);
-      setEditMode(false);
-      setSuccessMessage("Reservación encontrada");
+      if (response.status === 200 && response.reservation) {
+        const transformedReservation = transformReservationData(response.reservation);
+        setReservations([transformedReservation]);
+        setSelectedReservation(transformedReservation);
+        setEditDataForm(transformedReservation);
+        setEditMode(false);
+        setSuccessMessage("Reservación encontrada");
+      }
+    } else if (search.email.trim() || search.phone_number.trim()) {
+      // Search by email or phone - get all reservations
+      const response = await getUserReservations(
+        search.email.trim() || null,
+        search.phone_number.trim() || null
+      );
+
+      setIsSearching(false);
+
+      if (response.status === 500 || response.error) {
+        setErrorMessage("Hubo un error al intentar buscar las reservaciones");
+        return;
+      }
+
+      if (response.status === 400) {
+        setErrorMessage(response.errorMessage || "Error al buscar las reservaciones");
+        setReservations([]);
+        setSelectedReservation(null);
+        setEditDataForm(null);
+        return;
+      }
+
+      if (response.status === 200 && response.reservations) {
+        if (response.reservations.length === 0) {
+          const searchType = search.email.trim() ? "correo electrónico" : "número de teléfono";
+          setErrorMessage(`No se encontraron reservaciones para este ${searchType}`);
+          setReservations([]);
+          setSelectedReservation(null);
+          setEditDataForm(null);
+          return;
+        }
+
+        const transformedReservations = response.reservations.map(transformReservationData);
+        setReservations(transformedReservations);
+        // Select the first active reservation, or the first one if none are active
+        const activeReservation = transformedReservations.find(r => r.state === "active");
+        if (activeReservation) {
+          setSelectedReservation(activeReservation);
+          setEditDataForm(activeReservation);
+        } else if (transformedReservations.length > 0) {
+          setSelectedReservation(transformedReservations[0]);
+          setEditDataForm(transformedReservations[0]);
+        }
+        setEditMode(false);
+        setSuccessMessage(`${transformedReservations.length} reservación${transformedReservations.length > 1 ? 'es' : ''} encontrada${transformedReservations.length > 1 ? 's' : ''}`);
+      }
     }
   };
 
@@ -162,8 +233,8 @@ export default function MisReservas() {
     }
 
     const reservationData = {
-      code: reservation.code,
-      email: reservation.email,
+      code: selectedReservation.code,
+      email: selectedReservation.email,
       date_time: dateTime,
       table_area: editDataForm.area === "Sin preferencia" ? null : editDataForm.area,
       amount_people: parseInt(editDataForm.people),
@@ -208,7 +279,11 @@ export default function MisReservas() {
 
     if (response.status === 201 && response.reservation) {
       const transformedReservation = transformReservationData(response.reservation);
-      setReservation(transformedReservation);
+      // Update the reservation in the list
+      setReservations(prev => 
+        prev.map(r => r.code === transformedReservation.code ? transformedReservation : r)
+      );
+      setSelectedReservation(transformedReservation);
       setEditDataForm(transformedReservation);
       setEditMode(false);
       setSuccessMessage("Reservación actualizada con éxito");
@@ -226,7 +301,11 @@ export default function MisReservas() {
     resetMessages();
     setIsCancelling(true);
 
-    const response = await cancelUserReservation(reservation.code, reservation.email);
+    const response = await cancelUserReservation(
+      selectedReservation.code,
+      selectedReservation.email,
+      selectedReservation.phone || null
+    );
 
     setIsCancelling(false);
 
@@ -250,9 +329,9 @@ export default function MisReservas() {
     }
   };
 
-  const isReservationActive = reservation?.state === "active";
+  const isReservationActive = selectedReservation?.state === "active";
   const isLoggedIn = user && !userLoading;
-  const hasNoReservation = isLoggedIn && !autoLoading && !reservation;
+  const hasNoReservations = isLoggedIn && !autoLoading && reservations.length === 0;
 
   return (
     <section className="my-reservations-page">
@@ -263,7 +342,7 @@ export default function MisReservas() {
           <h1>Consulta, modifica o cancela tu reserva</h1>
           <p>
             {isLoggedIn 
-              ? "Aquí puedes ver, modificar o cancelar tu reserva actual."
+              ? "Aquí puedes ver, modificar o cancelar tus reservas."
               : "Ingresa el código de tu reserva o tu correo electrónico para ver los detalles. Desde aquí podrás modificar algunos datos o cancelar la reserva si ya no la necesitas."}
           </p>
         </header>
@@ -271,15 +350,16 @@ export default function MisReservas() {
         {isLoggedIn ? (
           // LOGGED IN USER VIEW
           <div className="my-reservations-grid">
-            <section className="my-res-card my-res-detail-card" style={{ gridColumn: "1 / -1" }}>
-              <h2>Mi Reserva</h2>
+            {/* RESERVATIONS LIST */}
+            <section className="my-res-card">
+              <h2>Mis Reservas</h2>
               <Messages />
               
               {autoLoading ? (
                 <div style={{ textAlign: "center", padding: "2rem" }}>
-                  <p>Cargando tu reserva...</p>
+                  <p>Cargando tus reservas...</p>
                 </div>
-              ) : hasNoReservation ? (
+              ) : hasNoReservations ? (
                 <div style={{ textAlign: "center", padding: "2rem" }}>
                   <p className="my-res-empty" style={{ marginBottom: "1.5rem" }}>
                     No tienes ninguna reserva actualmente.
@@ -288,10 +368,62 @@ export default function MisReservas() {
                     Crear una reserva
                   </Link>
                 </div>
-              ) : reservation ? (
+              ) : reservations.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  {reservations.map((res) => {
+                    const isActive = res.state === "active";
+                    return (
+                      <div
+                        key={res.code}
+                        onClick={() => {
+                          setSelectedReservation(res);
+                          setEditDataForm(res);
+                          setEditMode(false);
+                        }}
+                        style={{
+                          padding: "1rem",
+                          border: selectedReservation?.code === res.code ? "2px solid var(--color-primary)" : "1px solid #ddd",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          backgroundColor: selectedReservation?.code === res.code ? "#f5f5f5" : "white",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                          <span style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{res.code}</span>
+                          <span
+                            className={[
+                              "my-res-status-pill",
+                              isActive ? "status-activa" : "status-cancelada",
+                            ].join(" ")}
+                            style={{ fontSize: "0.875rem", padding: "0.25rem 0.75rem" }}
+                          >
+                            {isActive ? "Activa" : "Cancelada"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.9rem", color: "#666" }}>
+                          <div>Fecha: {res.date} a las {res.time}</div>
+                          <div>Personas: {res.people}</div>
+                          <div>Zona: {res.area}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </section>
+
+            {/* RESERVATION DETAIL */}
+            <section className="my-res-card my-res-detail-card">
+              <h2>Detalle de la Reserva</h2>
+              
+              {!selectedReservation ? (
+                <p className="my-res-empty">
+                  Selecciona una reserva de la lista para ver sus detalles.
+                </p>
+              ) : (
                 <>
                   <div className="my-res-status-row">
-                    <span className="my-res-code">{reservation.code}</span>
+                    <span className="my-res-code">{selectedReservation.code}</span>
                     <span
                       className={[
                         "my-res-status-pill",
@@ -306,31 +438,31 @@ export default function MisReservas() {
                     <div className="my-res-summary">
                       <ul>
                         <li>
-                          <strong>Nombre:</strong> {reservation.name}
+                          <strong>Nombre:</strong> {selectedReservation.name}
                         </li>
                         <li>
-                          <strong>Correo:</strong> {reservation.email}
+                          <strong>Correo:</strong> {selectedReservation.email}
                         </li>
-                        {reservation.phone && (
+                        {selectedReservation.phone && (
                           <li>
-                            <strong>Teléfono:</strong> {reservation.phone}
+                            <strong>Teléfono:</strong> {selectedReservation.phone}
                           </li>
                         )}
                         <li>
-                          <strong>Fecha:</strong> {reservation.date}
+                          <strong>Fecha:</strong> {selectedReservation.date}
                         </li>
                         <li>
-                          <strong>Hora:</strong> {reservation.time}
+                          <strong>Hora:</strong> {selectedReservation.time}
                         </li>
                         <li>
-                          <strong>Personas:</strong> {reservation.people}
+                          <strong>Personas:</strong> {selectedReservation.people}
                         </li>
                         <li>
-                          <strong>Zona:</strong> {reservation.area}
+                          <strong>Zona:</strong> {selectedReservation.area}
                         </li>
-                        {reservation.comments && (
+                        {selectedReservation.comments && (
                           <li>
-                            <strong>Comentarios:</strong> {reservation.comments}
+                            <strong>Comentarios:</strong> {selectedReservation.comments}
                           </li>
                         )}
                       </ul>
@@ -437,7 +569,7 @@ export default function MisReservas() {
                           className="btn-secondary"
                           onClick={() => {
                             setEditMode(false);
-                            setEditDataForm(reservation);
+                            setEditDataForm(selectedReservation);
                           }}
                           disabled={isEditing}
                         >
@@ -448,7 +580,7 @@ export default function MisReservas() {
                   )}
 
                   {/* BOTONES PRINCIPALES (MODIFICAR / CANCELAR) */}
-                  {reservation && !editMode && (
+                  {selectedReservation && !editMode && (
                     <div className="my-res-actions">
                       {isReservationActive && (
                         <>
@@ -480,7 +612,7 @@ export default function MisReservas() {
                     </div>
                   )}
                 </>
-              ) : null}
+              )}
             </section>
           </div>
         ) : (
@@ -515,8 +647,20 @@ export default function MisReservas() {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label htmlFor="phoneBusqueda">Número de teléfono</label>
+                  <input
+                    id="phoneBusqueda"
+                    name="phone_number"
+                    type="tel"
+                    placeholder="1234567890"
+                    value={search.phone_number}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+
                 <p style={{ fontSize: "0.875rem", color: "#666", marginTop: "-0.5rem", marginBottom: "1rem" }}>
-                  Ingresa al menos uno de los campos para buscar tu reserva
+                  Ingresa al menos uno de los campos para buscar tu reserva. Si buscas por correo o teléfono, verás todas tus reservas.
                 </p>
 
                 <button
@@ -529,11 +673,58 @@ export default function MisReservas() {
               </form>
             </section>
 
+            {/* RESERVATIONS LIST (shown when searching by email) */}
+            {reservations.length > 1 && (
+              <section className="my-res-card">
+                <h2>Mis Reservas</h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  {reservations.map((res) => {
+                    const isActive = res.state === "active";
+                    return (
+                      <div
+                        key={res.code}
+                        onClick={() => {
+                          setSelectedReservation(res);
+                          setEditDataForm(res);
+                          setEditMode(false);
+                        }}
+                        style={{
+                          padding: "1rem",
+                          border: selectedReservation?.code === res.code ? "2px solid var(--color-primary)" : "1px solid #ddd",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          backgroundColor: selectedReservation?.code === res.code ? "#f5f5f5" : "white",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                          <span style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{res.code}</span>
+                          <span
+                            className={[
+                              "my-res-status-pill",
+                              isActive ? "status-activa" : "status-cancelada",
+                            ].join(" ")}
+                            style={{ fontSize: "0.875rem", padding: "0.25rem 0.75rem" }}
+                          >
+                            {isActive ? "Activa" : "Cancelada"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.9rem", color: "#666" }}>
+                          <div>Fecha: {res.date} a las {res.time}</div>
+                          <div>Personas: {res.people}</div>
+                          <div>Zona: {res.area}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* TARJETA DE DETALLE / EDICIÓN */}
             <section className="my-res-card my-res-detail-card">
               <h2>Detalle de la reserva</h2>
 
-              {!reservation && (
+              {!selectedReservation && (
                 <p className="my-res-empty">
                   Aquí verás los detalles de tu reserva una vez que la
                   busques. Introduce tu código o email en el formulario de la
@@ -541,10 +732,10 @@ export default function MisReservas() {
                 </p>
               )}
 
-              {reservation && (
+              {selectedReservation && (
                 <>
                   <div className="my-res-status-row">
-                    <span className="my-res-code">{reservation.code}</span>
+                    <span className="my-res-code">{selectedReservation.code}</span>
                     <span
                       className={[
                         "my-res-status-pill",
@@ -559,31 +750,31 @@ export default function MisReservas() {
                     <div className="my-res-summary">
                       <ul>
                         <li>
-                          <strong>Nombre:</strong> {reservation.name}
+                          <strong>Nombre:</strong> {selectedReservation.name}
                         </li>
                         <li>
-                          <strong>Correo:</strong> {reservation.email}
+                          <strong>Correo:</strong> {selectedReservation.email}
                         </li>
-                        {reservation.phone && (
+                        {selectedReservation.phone && (
                           <li>
-                            <strong>Teléfono:</strong> {reservation.phone}
+                            <strong>Teléfono:</strong> {selectedReservation.phone}
                           </li>
                         )}
                         <li>
-                          <strong>Fecha:</strong> {reservation.date}
+                          <strong>Fecha:</strong> {selectedReservation.date}
                         </li>
                         <li>
-                          <strong>Hora:</strong> {reservation.time}
+                          <strong>Hora:</strong> {selectedReservation.time}
                         </li>
                         <li>
-                          <strong>Personas:</strong> {reservation.people}
+                          <strong>Personas:</strong> {selectedReservation.people}
                         </li>
                         <li>
-                          <strong>Zona:</strong> {reservation.area}
+                          <strong>Zona:</strong> {selectedReservation.area}
                         </li>
-                        {reservation.comments && (
+                        {selectedReservation.comments && (
                           <li>
-                            <strong>Comentarios:</strong> {reservation.comments}
+                            <strong>Comentarios:</strong> {selectedReservation.comments}
                           </li>
                         )}
                       </ul>
@@ -690,7 +881,7 @@ export default function MisReservas() {
                           className="btn-secondary"
                           onClick={() => {
                             setEditMode(false);
-                            setEditDataForm(reservation);
+                            setEditDataForm(selectedReservation);
                           }}
                           disabled={isEditing}
                         >
@@ -701,7 +892,7 @@ export default function MisReservas() {
                   )}
 
                   {/* BOTONES PRINCIPALES (MODIFICAR / CANCELAR) */}
-                  {reservation && !editMode && (
+                  {selectedReservation && !editMode && (
                     <div className="my-res-actions">
                       {isReservationActive && (
                         <>
