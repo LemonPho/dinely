@@ -1,11 +1,13 @@
 import React, { createContext, useEffect, useState, useContext } from "react";
 import { getCsrfToken, submitLogin, submitRegistration, submitLogout } from "../fetch/authentication";
 import { useMessagesContext } from "./messages-context";
+import { useUserContext } from "./user-context";
 
 export const AuthenticationContext = createContext();
 
 export function AuthenticationProvider({ children }) {
 
+  const { retrieveCurrentUser } = useUserContext();
   const { resetMessages, setLoadingMessage, setErrorMessage, setSuccessMessage } = useMessagesContext();
 
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,7 @@ export function AuthenticationProvider({ children }) {
     if (loginResponse.status === 200) {
       setLoadingMessage("");
       setLoading(false);
+      await retrieveCurrentUser();
       navigate("/");
       return;
     }
@@ -93,8 +96,8 @@ export function AuthenticationProvider({ children }) {
       return;
     }
 
-    if (registerResponse.status === 200) {
-      setSuccessMessage("Account created, check your email to finalize the creation");
+    if (registerResponse.status === 201) {
+      setSuccessMessage("Cuenta creada. Por favor verifica tu correo electrónico para activar tu cuenta.");
       setLoading(false);
       setLoadingMessage("");
       return;

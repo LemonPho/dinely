@@ -1,55 +1,40 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { useUserContext } from "../application-context/contexto-usuario";
-import { useAuthenticationContext } from "../application-context/contexto-authenticacion";
-import TextInput from "./util-components/TextInput";
+import { useUserContext } from "../application-context/user-context";
+import { useAuthenticationContext } from "../application-context/authentication-context";
 
-import '../static/card.css'
-import '../static/util.css'
+import "../styles/global.css";
 
 export default function RegisterPage() {
   const { register, loading } = useAuthenticationContext();
   const { user, userLoading } = useUserContext();
 
-  const [registerInput, setRegisterInput] = useState({
+  const [formData, setFormData] = useState({
     email: "",
     password: "",
     passwordConfirmation: "",
   })
-
   const [emailInvalid, setEmailInvalid] = useState(false);
   const [passwordInvalid, setPasswordInvalid] = useState(false);
 
-  function handleEmailInput(string) {
-    setRegisterInput({
-      ...registerInput,
-      email: string,
-    });
-  }
-
-  function handlePasswordInput(string) {
-    setRegisterInput({
-      ...registerInput,
-      password: string,
-    });
-  }
-
-  function handlePasswordConfirmationInput(string) {
-    setRegisterInput({
-      ...registerInput,
-      passwordConfirmation: string,
-    });
-  }
-
-  async function handleRegister() {
+  async function handleRegister(e) {
+    e.preventDefault();
     await register(
-      registerInput,
+      formData,
       setEmailInvalid,
       setPasswordInvalid
     );
   }
 
-  if (userLoading){
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  if (userLoading) {
     return;
   }
 
@@ -62,20 +47,66 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="custom-card rounded-15 mx-auto mt-2" style={{ width: "21rem" }}>
-      <div className="custom-card-header">
-        <h2>Sign Up</h2>
-      </div>
-      <div className="custom-card-body">
-        <TextInput type={"email"} className={"mb-2"} placeholder={"Email"} value={registerInput.email} setValue={handleEmailInput} onEnterFunction={handleRegister} outline={emailInvalid} />
-        <TextInput type="password" className={"mb-2"} placeholder="Password" value={registerInput.password} setValue={handlePasswordInput} onEnterFunction={handleRegister} outline={passwordInvalid} />
-        <TextInput type="password" className={"mb-2"} placeholder="Confirm password" value={registerInput.passwordConfirmation} setValue={handlePasswordConfirmationInput} onEnterFunction={handleRegister} outline={passwordInvalid} />
+    <section className="auth-page">
+      <div className="container">
+        <div className="auth-card rounded-15 mx-auto mt-2" style={{ width: "21rem" }}>
+          <h1>Registrar</h1>
+          <p className="auth-subtitle">
+            Crea una cuenta para reservar tu mesa en Dinely.
+          </p>
 
-        {loading && <button className="btn btn-primary w-100 rounded-15 mt-2" disabled>Loading...</button>}
-        {!loading && <button className="btn btn-primary w-100 rounded-15 mt-2" onClick={handleRegister}>Sign up</button>}
-        <hr />
-        <Link to="/login" className="btn btn-success w-100 rounded-15">Login to an account</Link>
+          <form className="auth-form" onSubmit={handleRegister}>
+            <div className="form-group">
+              <label htmlFor="email">Correo electrónico</label>
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                placeholder="tuemail@ejemplo.com" 
+                value={formData.email} 
+                onChange={handleChange} 
+                required 
+                className={emailInvalid ? "error" : ""}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Contraseña</label>
+              <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                placeholder="••••••••" 
+                value={formData.password} 
+                onChange={handleChange} 
+                required 
+                className={passwordInvalid ? "error" : ""}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="passwordConfirmation">Confirmar contraseña</label>
+              <input 
+                type="password" 
+                id="passwordConfirmation" 
+                name="passwordConfirmation" 
+                placeholder="••••••••" 
+                value={formData.passwordConfirmation} 
+                onChange={handleChange} 
+                required 
+                className={passwordInvalid ? "error" : ""}
+              />
+            </div>
+            <button type="submit" className="btn-primary auth-btn" disabled={loading}>
+              {loading ? "Creando cuenta..." : "Crear cuenta"}
+            </button>
+          </form>
+        </div>
+        {/* Botón inferior opcional */}
+        <div className="back-home-container">
+          <Link to="/" className="btn-back-home">
+            ← Volver al inicio
+          </Link>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

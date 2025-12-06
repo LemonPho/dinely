@@ -283,11 +283,6 @@ export default function AdminPlatesPage() {
       return;
     }
 
-    if (!plateFormData.description.trim()) {
-      setErrorMessage("La descripción no puede estar vacía");
-      return;
-    }
-
     if (!plateFormData.category) {
       setErrorMessage("Debes seleccionar una categoría");
       return;

@@ -41,10 +41,6 @@ def validate_create_plate(data):
         result["valid_name"] = False
         result["okay"] = False
 
-    if not description or not description.strip():
-        result["valid_description"] = False
-        result["okay"] = False
-
     if not category:
         result["valid_category"] = False
         result['okay'] = False

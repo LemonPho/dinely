@@ -8,7 +8,11 @@ from django.utils.http import urlsafe_base64_decode
 import json
 
 from backend.serializers.users import UserCreateSerializer, UserReadSerializer
+from backend.views.authentication.utils import generate_password_setup_token, generate_email_validation_code
+from backend.email_service import send_password_setup_email, send_email_validation_email
 from backend.views.authentication.validators import validate_registration, validate_set_password
+from backend.models import EmailValidationCode
+import uuid
 
 def get_csrf_token(request):
     get_token(request)  # CSRF
@@ -40,7 +44,13 @@ def register(request):
         return JsonResponse(response, status=400, content_type="application/json")
 
     user = serializer.save()
-    login(request, user)
+    
+    # Generar código de validación de email
+    code = generate_email_validation_code(user)
+    
+    # Enviar email con link para validar correo electrónico
+    send_email_validation_email(user, code, request)
+
     return HttpResponse(status=201)
 
 def login_view(request):
@@ -60,6 +70,12 @@ def login_view(request):
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         return HttpResponse(status=404)
+
+    # Check if user account is active (email verified)
+    if not user.is_active:
+        return JsonResponse({
+            "error": "Tu cuenta no está activa. Por favor verifica tu correo electrónico."
+        }, status=403)
 
     if user.check_password(password):
         login(request, user)
@@ -98,3 +114,53 @@ def get_current_user(request):
     return JsonResponse({
         "user": serializer.data
     }, status=200)
+
+def verify_email(request):
+    """
+    Verifica el código de validación de email y activa la cuenta del usuario.
+    """
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    
+    data = json.loads(request.body)
+    code_str = data.get("code", False)
+    
+    if not code_str:
+        return JsonResponse({"error": "Código de validación requerido"}, status=400)
+    
+    # Validate UUID format
+    try:
+        code_uuid = uuid.UUID(code_str)
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Código de validación inválido"}, status=400)
+    
+    # Look up EmailValidationCode
+    try:
+        validation_code = EmailValidationCode.objects.get(code=code_uuid)
+    except EmailValidationCode.DoesNotExist:
+        return JsonResponse({"error": "Código de validación no encontrado"}, status=404)
+    
+    # Check if code is already used
+    if validation_code.is_used:
+        return JsonResponse({"error": "Este código de validación ya fue utilizado"}, status=400)
+    
+    # Check if code is expired
+    if validation_code.is_expired():
+        return JsonResponse({"error": "El código de validación ha expirado"}, status=400)
+    
+    # Activate user account
+    user = validation_code.user
+    user.is_active = True
+    user.save()
+    
+    # Mark code as used
+    validation_code.is_used = True
+    validation_code.save()
+    
+    return HttpResponse(status=200)
+
+def logout_view(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    logout(request)
+    return HttpResponse(status=200)

@@ -3,6 +3,7 @@ import { useOpenersContext } from "../application-context/openers-context.jsx";
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
+import { getBills } from "../fetch/shared";
 import "../styles/global.css";
 import "../styles/admin.css";
 import { getBills, createBill, editBill, deleteBill } from "../fetch/admin.jsx";
@@ -275,6 +276,15 @@ export default function AdminAccountsPage() {
       </div>
 
       <div className="admin-content-card">
+        {isLoading ? (
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>Cargando cuentas...</p>
+          </div>
+        ) : accounts.length === 0 ? (
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>No hay cuentas disponibles</p>
+          </div>
+        ) : (
         <div className="admin-reservations-list-vertical">
           {bills.length === 0 ? (
             <div>No hay cuentas registradas</div>
@@ -304,6 +314,7 @@ export default function AdminAccountsPage() {
             })
           )}
         </div>
+        )}
       </div>
 
       {(viewingAccount || editingAccount || isCreating) && (
