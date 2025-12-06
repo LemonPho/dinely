@@ -859,7 +859,7 @@ export async function getBills() {
   };
 
   try {
-    const apiResponse = await fetch(`/api/admin/bills/`, {
+    const apiResponse = await fetch(`/api/admin/list-bills/`, {
       method: "GET",
       credentials: "include",
     });
@@ -886,7 +886,7 @@ export async function createBill(billData) {
 
   try {
     const csrftoken = getCookie("csrftoken");
-    const apiResponse = await fetch(`/api/admin/bills/`, {
+    const apiResponse = await fetch(`/api/admin/create-bill/`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -894,8 +894,9 @@ export async function createBill(billData) {
         "Content-type": "application/json",
       },
       body: JSON.stringify({
-        reservation: billData.reservation, // ID de la reservación
-        status: billData.status,           // estado: pending, paid, cancelled
+        table: billData.table,   // ID de la mesa
+        waiter: billData.waiter,  // ID del mesero
+        state: billData.state,    // estado: current, closed, etc.
       }),
     });
 
@@ -926,22 +927,24 @@ export async function editBill(billData) {
 
   try {
     const csrftoken = getCookie("csrftoken");
-    const apiResponse = await fetch(`/api/admin/bills/${billData.id}/`, {
-      method: "PUT",
+    const apiResponse = await fetch(`/api/admin/edit-bill/`, {
+      method: "POST",
       credentials: "include",
       headers: {
         "X-CSRFTOKEN": csrftoken,
         "Content-type": "application/json",
       },
       body: JSON.stringify({
-        reservation: billData.reservation,
-        status: billData.status,
+        id: billData.id,
+        table: billData.table,   // ID de la mesa (opcional)
+        waiter: billData.waiter,  // ID del mesero (opcional)
+        state: billData.state,    // estado (opcional)
       }),
     });
 
     const apiResult = await apiResponse.json();
 
-    if (apiResponse.status === 200) {
+    if (apiResponse.status === 201) {
       result.bill = apiResult;
     } else if (apiResponse.status === 400) {
       result.validationErrors = apiResult;
@@ -964,12 +967,16 @@ export async function deleteBill(billId) {
 
   try {
     const csrftoken = getCookie("csrftoken");
-    const apiResponse = await fetch(`/api/admin/bills/${billId}/`, {
-      method: "DELETE",
+    const apiResponse = await fetch(`/api/admin/delete-bill/`, {
+      method: "POST",
       credentials: "include",
       headers: {
         "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
       },
+      body: JSON.stringify({
+        id: billId,
+      }),
     });
 
     result.error = apiResponse.status === 500;

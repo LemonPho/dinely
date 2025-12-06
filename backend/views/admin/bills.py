@@ -1,8 +1,8 @@
 import json
 from django.http import JsonResponse, HttpResponse
-from ..models import Bill
-from ..serializers.Bill_Serializer import AdminCreateBillSerializer, ReadBillSerializer
-from ..validators import validate_create_bill  # Asumiendo que tienes un validador similar
+from ...models import Bill
+from ...serializers.bills import AdminCreateBillSerializer, ReadBillSerializer
+from .validators import validate_create_bill, validate_edit_bill
 
 def create_bill(request):
     if not request.method == "POST":
@@ -51,8 +51,8 @@ def edit_bill(request):
     except Bill.DoesNotExist:
         return HttpResponse(status=404)
 
-    # Validar los datos usando el mismo validador que create_bill
-    response = validate_create_bill(data)
+    # Validar los datos usando el validador de edición
+    response = validate_edit_bill(data, bill_id=bill_id)
 
     if not response["okay"]:
         response.pop("okay")

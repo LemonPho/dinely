@@ -109,11 +109,11 @@ class Bill(models.Model):
     code = models.CharField(max_length=16) # CUE-######
     table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="accounts", null=True)
     waiter = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="accounts", null=True)
-    date_time = models.DateTimeField()
-    state = models.CharField(max_length=64)
-    total = models.FloatField()
-    total_paid = models.FloatField()
-    tip = models.IntegerField()
+    date_time = models.DateTimeField(auto_now_add=True)
+    state = models.CharField(max_length=64, default="current")
+    total = models.FloatField(default=0)
+    total_paid = models.FloatField(default=0)
+    tip = models.IntegerField(default=0)
 
 #Tabla de union entre cuentas y platos, es para tener varios platos en una cuenta
 class BillPlate(models.Model):

@@ -1,6 +1,6 @@
 # backend/urls.py (or config/urls.py)
 from django.urls import path
-from backend.views.admin import plates, users, tables, reservations
+from backend.views.admin import plates, users, tables, reservations, bills
 from backend.views.user import reservations as user_reservations
 from backend.views import shared
 from backend.views.authentication import authentication
@@ -33,6 +33,10 @@ urlpatterns = [
     path("admin/edit-reservation/", reservations.edit_reservation),
     path("admin/delete-reservation/", reservations.delete_reservation),
     path("admin/get-reservations/", shared.get_reservations),
+
+    path("admin/create-bill/", bills.create_bill),
+    path("admin/edit-bill/", bills.edit_bill),
+    path("admin/delete-bill/", bills.delete_bill),
 
     path("authentication/csrf/", authentication.get_csrf_token),
     path("authentication/register/", authentication.register),
