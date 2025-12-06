@@ -69,7 +69,7 @@ export async function getTableAreas() {
   return response;
 }
 
-export async function getUserReservation(code, email) {
+export async function getUserReservation(code, email, phone_number = null) {
   let response = {
     reservation: null,
     status: 0,
@@ -82,6 +82,7 @@ export async function getUserReservation(code, email) {
     const params = new URLSearchParams();
     if (code) params.append("code", code);
     if (email) params.append("email", email);
+    if (phone_number) params.append("phone_number", phone_number);
 
     const apiResponse = await fetch(`/api/user/get-reservation/?${params.toString()}`, {
       method: "GET",
@@ -102,6 +103,47 @@ export async function getUserReservation(code, email) {
   } catch (error) {
     response.error = true;
     response.errorMessage = "Error al buscar la reservación";
+  }
+
+  return response;
+}
+
+export async function getUserReservations(email = null, phone_number = null) {
+  let response = {
+    reservations: [],
+    status: 0,
+    error: false,
+    errorMessage: null,
+  };
+
+  try {
+    // Build query string with email or phone_number if provided
+    const params = new URLSearchParams();
+    if (email) params.append("email", email);
+    if (phone_number) params.append("phone_number", phone_number);
+
+    const queryString = params.toString();
+    const url = `/api/user/get-reservations/${queryString ? `?${queryString}` : ""}`;
+
+    const apiResponse = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : null;
+
+    if (apiResponse.status === 200) {
+      response.reservations = apiResult.reservations || [];
+    } else if (apiResponse.status === 400) {
+      const errorData = await apiResponse.json().catch(() => ({}));
+      response.errorMessage = errorData.error || "Error al obtener las reservaciones";
+    }
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+  } catch (error) {
+    response.error = true;
+    response.errorMessage = "Error al obtener las reservaciones";
   }
 
   return response;
@@ -154,7 +196,7 @@ export async function editUserReservation(reservationData) {
   return result;
 }
 
-export async function cancelUserReservation(code, email) {
+export async function cancelUserReservation(code, email, phone_number = null) {
   let result = {
     error: false,
     status: null,
@@ -174,6 +216,7 @@ export async function cancelUserReservation(code, email) {
       body: JSON.stringify({
         code: code || null,
         email: email || null,
+        phone_number: phone_number || null,
       }),
     });
 

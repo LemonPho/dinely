@@ -1,44 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
+import { getWaiterBill, getPlates, addPlateToBill, finalizeBill } from "../fetch/shared";
 import "../styles/global.css";
 import "../styles/admin.css";
 
-export default function EmployeeAccountPage() {
+export default function EmployeeBillPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openedModal, openModal, closeModal, openedDropdown, toggleDropdown, closeDropdown } = useOpenersContext();
 
-  // Mock data - platillos disponibles
-  const availablePlates = [
-    { id: 1, name: "Guacamole con totopos", price: 115, category: "entrada" },
-    { id: 2, name: "Papas fritas con cheddar", price: 120, category: "entrada" },
-    { id: 3, name: "Bruschettas con jitomate y albahaca", price: 130, category: "entrada" },
-    { id: 4, name: "Pollo a la parrilla con verduras", price: 210, category: "comida" },
-    { id: 5, name: "Hamburguesa gourmet Dinely", price: 190, category: "comida" },
-    { id: 6, name: "Pasta al pesto", price: 185, category: "comida" },
-    { id: 7, name: "Limonada natural", price: 55, category: "bebida" },
-    { id: 8, name: "Smoothie de fresa", price: 70, category: "bebida" },
-    { id: 9, name: "Café latte", price: 60, category: "bebida" },
-  ];
-
-  // Mock data - cuenta actual (en producción vendría de una API)
-  const [account, setAccount] = useState({
-    id: parseInt(id),
-    code: "CTA-001",
-    tableNumber: "5",
-    waiterName: "mesero1",
-    total: 850.00,
-    date: "2024-01-20",
-    time: "19:00",
-    status: "current",
-    items: [
-      { id: 1, name: "Pollo a la parrilla", quantity: 2, price: 210, notes: "" },
-      { id: 2, name: "Limonada natural", quantity: 2, price: 55, notes: "" },
-    ],
-  });
+  const [account, setAccount] = useState(null);
+  const [availablePlates, setAvailablePlates] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const [isManagingPlates, setIsManagingPlates] = useState(false);
   const [isFinishingAccount, setIsFinishingAccount] = useState(false);
@@ -50,34 +27,108 @@ export default function EmployeeAccountPage() {
     tipPercentage: "",
   });
 
+  // Fetch bill and plates on component mount
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      // Fetch bill
+      const billResponse = await getWaiterBill(id);
+      if (billResponse.status === 200 && billResponse.bill) {
+        const bill = billResponse.bill;
+        const dateTime = new Date(bill.date_time);
+        const date = dateTime.toISOString().split('T')[0];
+        const time = dateTime.toTimeString().split(' ')[0].slice(0, 5);
+
+        setAccount({
+          id: bill.id,
+          code: bill.code,
+          tableNumber: bill.table?.code || "",
+          waiterName: bill.waiter?.name || "",
+          total: bill.total,
+          date: date,
+          time: time,
+          status: bill.state,
+          items: bill.plates?.map((billPlate, index) => ({
+            id: billPlate.id || index,
+            name: billPlate.plate?.name || "",
+            quantity: 1, // API doesn't have quantity per BillPlate, defaulting to 1
+            price: billPlate.plate?.price || 0,
+            notes: billPlate.notes || "",
+          })) || [],
+        });
+      } else {
+        setErrorMessage(billResponse.errorMessage || "Error al cargar la cuenta");
+      }
+
+      // Fetch available plates
+      const platesResponse = await getPlates();
+      if (platesResponse.status === 200 && platesResponse.plates) {
+        setAvailablePlates(platesResponse.plates);
+      }
+
+      setIsLoading(false);
+    }
+
+    if (id) {
+      fetchData();
+    }
+  }, [id]);
+
   function calculateTotal(items) {
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }
 
-  function handleAddPlate() {
+  async function handleAddPlate() {
     if (!selectedPlate) return;
 
     const plate = availablePlates.find(p => p.name === selectedPlate);
     if (!plate) return;
 
-    const newItem = {
-      id: Date.now(),
-      name: plate.name,
-      quantity: parseInt(plateQuantity) || 1,
-      price: plate.price,
-      notes: plateNotes,
-    };
+    const quantity = parseInt(plateQuantity) || 1;
+    const notes = plateNotes || "";
 
-    const updatedItems = [...account.items, newItem];
-    setAccount({
-      ...account,
-      items: updatedItems,
-      total: calculateTotal(updatedItems),
-    });
+    // Call API to add plate to bill
+    const response = await addPlateToBill(account.id, plate.id, quantity, notes);
 
-    setSelectedPlate("");
-    setPlateQuantity(1);
-    setPlateNotes("");
+    if (response.status === 200 && response.bill) {
+      // Update account with the response from server
+      const bill = response.bill;
+      const dateTime = new Date(bill.date_time);
+      const date = dateTime.toISOString().split('T')[0];
+      const time = dateTime.toTimeString().split(' ')[0].slice(0, 5);
+
+      setAccount({
+        id: bill.id,
+        code: bill.code,
+        tableNumber: bill.table?.code || "",
+        waiterName: bill.waiter?.name || "",
+        total: bill.total,
+        date: date,
+        time: time,
+        status: bill.state,
+        items: bill.plates?.map((billPlate, index) => ({
+          id: billPlate.id || index,
+          name: billPlate.plate?.name || "",
+          quantity: 1, // API doesn't have quantity per BillPlate, defaulting to 1
+          price: billPlate.plate?.price || 0,
+          notes: billPlate.notes || "",
+        })) || [],
+      });
+
+      // Reset form
+      setSelectedPlate("");
+      setPlateQuantity(1);
+      setPlateNotes("");
+      
+      // Close modal
+      closeModal();
+      setIsManagingPlates(false);
+    } else {
+      // Show error message (extracted from validation errors)
+      alert(response.errorMessage || "Error al agregar platillo");
+    }
   }
 
   function handleRemovePlate(itemId) {
@@ -105,26 +156,47 @@ export default function EmployeeAccountPage() {
     });
   }
 
-  function handleFinishAccount(e) {
+  async function handleFinishAccount(e) {
     e.preventDefault();
 
     const amountPaid = parseFloat(finishFormData.amountPaid);
     const tipPercentage = parseFloat(finishFormData.tipPercentage) || 0;
-    const tipAmount = (account.total * tipPercentage) / 100;
-    const totalWithTip = account.total + tipAmount;
 
-    // Actualizar cuenta a cerrada
-    setAccount({
-      ...account,
-      status: "closed",
-    });
+    // Call API to finalize bill
+    const response = await finalizeBill(account.id, amountPaid, tipPercentage);
 
-    // Aquí se haría la llamada a la API para guardar
-    alert(`Cuenta finalizada.\nTotal: $${account.total.toFixed(2)} MXN\nTips (${tipPercentage}%): $${tipAmount.toFixed(2)} MXN\nTotal con tips: $${totalWithTip.toFixed(2)} MXN\nMonto pagado: $${amountPaid.toFixed(2)} MXN\nCambio: $${(amountPaid - totalWithTip).toFixed(2)} MXN`);
+    if (response.status === 200 && response.bill) {
+      // Update account with the response from server
+      const bill = response.bill;
+      const dateTime = new Date(bill.date_time);
+      const date = dateTime.toISOString().split('T')[0];
+      const time = dateTime.toTimeString().split(' ')[0].slice(0, 5);
 
-    closeModal();
-    setIsFinishingAccount(false);
-    navigate("/empleado");
+      setAccount({
+        id: bill.id,
+        code: bill.code,
+        tableNumber: bill.table?.code || "",
+        waiterName: bill.waiter?.name || "",
+        total: bill.total,
+        date: date,
+        time: time,
+        status: bill.state,
+        items: bill.plates?.map((billPlate, index) => ({
+          id: billPlate.id || index,
+          name: billPlate.plate?.name || "",
+          quantity: 1,
+          price: billPlate.plate?.price || 0,
+          notes: billPlate.notes || "",
+        })) || [],
+      });
+
+      closeModal();
+      setIsFinishingAccount(false);
+      navigate("/empleado/cuentas");
+    } else {
+      // Show error message
+      alert(response.errorMessage || "Error al finalizar cuenta");
+    }
   }
 
   function handleFinishFormChange(e) {
@@ -133,6 +205,48 @@ export default function EmployeeAccountPage() {
       ...finishFormData,
       [name]: value,
     });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="admin-page">
+        <div className="admin-page-header">
+          <div>
+            <h1>Cargando cuenta...</h1>
+          </div>
+        </div>
+        <div className="admin-content-card">
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>Cargando información de la cuenta...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMessage || !account) {
+    return (
+      <div className="admin-page">
+        <div className="admin-page-header">
+          <div className="admin-page-header-top">
+            <div>
+              <h1>Error</h1>
+            </div>
+            <button
+              className="admin-btn-secondary"
+              onClick={() => navigate("/empleado/cuentas")}
+            >
+              Volver a Cuentas
+            </button>
+          </div>
+        </div>
+        <div className="admin-content-card">
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p style={{ color: "var(--color-error)" }}>{errorMessage || "No se pudo cargar la cuenta"}</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -145,9 +259,9 @@ export default function EmployeeAccountPage() {
           </div>
           <button
             className="admin-btn-secondary"
-            onClick={() => navigate("/empleado")}
+            onClick={() => navigate("/empleado/cuentas")}
           >
-            Volver
+            Volver a Cuentas
           </button>
         </div>
       </div>
@@ -217,12 +331,14 @@ export default function EmployeeAccountPage() {
           <button
             className="admin-btn-primary"
             onClick={() => {
-              setIsFinishingAccount(true);
-              openModal("finish-account");
+              if (account.status !== "closed") {
+                setIsFinishingAccount(true);
+                openModal("finish-account");
+              }
             }}
             disabled={account.status === "closed"}
           >
-            Finalizar Cuenta
+            {account.status === "closed" ? "Cuenta Finalizada" : "Finalizar Cuenta"}
           </button>
         </div>
       </div>
@@ -306,7 +422,7 @@ export default function EmployeeAccountPage() {
                               closeDropdown();
                             }}
                           >
-                            {plate.name} - ${plate.price} MXN
+                            {plate.name} - ${plate.price?.toFixed(2) || "0.00"} MXN
                           </a>
                         </li>
                       ))}
@@ -378,15 +494,14 @@ export default function EmployeeAccountPage() {
               ×
             </button>
           </div>
-          <form className="admin-modal-form" onSubmit={handleFinishAccount}>
+          <form className="admin-modal-form" onSubmit={handleFinishAccount} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             <div className="admin-form-group">
-              <label htmlFor="total">Total de la Cuenta</label>
+              <label>Total de la Cuenta</label>
               <input
                 type="text"
-                id="total"
                 value={`$${account.total.toFixed(2)} MXN`}
                 disabled
-                style={{ backgroundColor: "#f5f5f5" }}
+                style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
               />
             </div>
 
@@ -420,23 +535,38 @@ export default function EmployeeAccountPage() {
               />
             </div>
 
-            {finishFormData.amountPaid && finishFormData.tipPercentage && (
-              <div className="admin-form-group" style={{ padding: "1rem", backgroundColor: "var(--color-bg)", borderRadius: "12px" }}>
-                <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>Resumen:</p>
-                <p style={{ margin: "0.25rem 0" }}>Total: ${account.total.toFixed(2)} MXN</p>
-                <p style={{ margin: "0.25rem 0" }}>
-                  Tips ({finishFormData.tipPercentage}%): ${((account.total * parseFloat(finishFormData.tipPercentage || 0)) / 100).toFixed(2)} MXN
-                </p>
-                <p style={{ margin: "0.25rem 0", fontWeight: 600 }}>
-                  Total con tips: ${(account.total + (account.total * parseFloat(finishFormData.tipPercentage || 0)) / 100).toFixed(2)} MXN
-                </p>
-                <p style={{ margin: "0.25rem 0", fontWeight: 600, color: "var(--color-primary)" }}>
-                  Cambio: ${(parseFloat(finishFormData.amountPaid || 0) - (account.total + (account.total * parseFloat(finishFormData.tipPercentage || 0)) / 100)).toFixed(2)} MXN
-                </p>
+            {finishFormData.amountPaid && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", padding: "1rem", backgroundColor: "var(--color-bg)", borderRadius: "12px" }}>
+                {finishFormData.tipPercentage && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                    <span style={{ fontSize: "0.9rem", color: "var(--color-text-soft)" }}>Tips ({finishFormData.tipPercentage}%)</span>
+                    <span style={{ fontWeight: 500 }}>${((account.total * parseFloat(finishFormData.tipPercentage || 0)) / 100).toFixed(2)} MXN</span>
+                  </div>
+                )}
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                  <span style={{ fontSize: "0.9rem", color: "var(--color-text-soft)" }}>Total con tips</span>
+                  <span style={{ fontWeight: 600 }}>${(account.total + (account.total * parseFloat(finishFormData.tipPercentage || 0)) / 100).toFixed(2)} MXN</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", paddingTop: "0.75rem", borderTop: "2px solid var(--color-primary)", marginTop: "0.5rem" }}>
+                  <span style={{ fontSize: "0.9rem", color: "var(--color-text-soft)" }}>Cambio</span>
+                  <span style={{ fontWeight: 700, fontSize: "1.2rem", color: "var(--color-primary)" }}>
+                    ${(parseFloat(finishFormData.amountPaid || 0) - (account.total + (account.total * parseFloat(finishFormData.tipPercentage || 0)) / 100)).toFixed(2)} MXN
+                  </span>
+                </div>
               </div>
             )}
 
-            <div className="admin-form-actions">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
+              <button
+                type="submit"
+                className="admin-btn-primary"
+                disabled={!finishFormData.amountPaid || account.status === "closed"}
+                style={{ width: "100%" }}
+              >
+                {account.status === "closed" ? "Cuenta Ya Finalizada" : "Finalizar Cuenta"}
+              </button>
               <button
                 type="button"
                 className="admin-btn-secondary"
@@ -444,15 +574,9 @@ export default function EmployeeAccountPage() {
                   closeModal();
                   setIsFinishingAccount(false);
                 }}
+                style={{ width: "100%" }}
               >
                 Cancelar
-              </button>
-              <button
-                type="submit"
-                className="admin-btn-primary"
-                disabled={!finishFormData.amountPaid}
-              >
-                Finalizar Cuenta
               </button>
             </div>
           </form>
@@ -461,4 +585,3 @@ export default function EmployeeAccountPage() {
     </div>
   );
 }
-

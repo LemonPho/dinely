@@ -341,16 +341,9 @@ export default function AdminUsersPage() {
               {isEditing && formData.id && user && formData.id !== user.id && (
                 <button
                   type="button"
+                  className="admin-btn-danger large"
                   onClick={handleDeleteUser}
-                  style={{
-                    padding: "0.75rem 1.5rem",
-                    background: "#dc2626",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    marginRight: "auto",
-                  }}
+                  style={{ marginRight: "auto" }}
                 >
                   Eliminar
                 </button>

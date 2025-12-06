@@ -61,8 +61,18 @@ class AdminCreateTableSerializer(serializers.ModelSerializer):
 
 class ReadTableSerializer(serializers.ModelSerializer):
     area = ReadTableAreaSerializer(read_only=True)
+    active_bill_code = serializers.SerializerMethodField()
     
     class Meta:
         model = Table
-        fields = ["id", "code", "capacity", "state", "area", "notes"]
+        fields = ["id", "code", "capacity", "state", "area", "notes", "active_bill_code"]
+    
+    def get_active_bill_code(self, obj):
+        """
+        Get the code of the active bill associated with this table, if any.
+        Returns None if no active bill exists.
+        """
+        from backend.models import Bill
+        active_bill = Bill.objects.filter(table=obj, state="current").first()
+        return active_bill.code if active_bill else None
 

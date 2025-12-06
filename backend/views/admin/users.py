@@ -66,6 +66,20 @@ def list_users(request):
     serializer = UserReadSerializer(users, many=True)
     return JsonResponse(serializer.data, safe=False)
 
+def get_waiters(request):
+    # Solo permitir a administradores autenticados
+    if not request.user.is_authenticated or not request.user.is_admin:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+
+    if request.method != "GET":
+        return HttpResponse(status=405)
+
+    User = get_user_model()
+    waiters = User.objects.filter(is_waiter=True)
+
+    serializer = UserReadSerializer(waiters, many=True)
+    return JsonResponse({"waiters": serializer.data}, status=200)
+
 def edit_user(request):
     if request.method != "POST":
         return HttpResponse(status=405)

@@ -6,7 +6,7 @@ import Dropdown from "../util-components/Dropdown.jsx";
 import Messages from "../util-components/messages.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
-import { createTableArea, getTableAreas, createTable, getTables, editTableArea, editTable, deleteTableArea, deleteTable } from "../fetch/Admin.jsx";
+import { createTableArea, getTableAreas, createTable, getTables, editTableArea, editTable, deleteTableArea, deleteTable } from "../fetch/admin.jsx";
 
 export default function AdminTablesPage() {
   const { openedModal, openModal, closeModal, openedDropdown, toggleDropdown, closeDropdown } = useOpenersContext();
@@ -461,7 +461,7 @@ export default function AdminTablesPage() {
                   onClick={() => handleTableClick(table)}
                 >
                   <div className="admin-table-header">
-                    <h3>Mesa {table.code}</h3>
+                    <h3>{table.code}</h3>
                     <span className={`admin-table-status ${getStatusColor(table.state)}`}>
                       {getStatusLabel(table.state)}
                     </span>
@@ -469,6 +469,11 @@ export default function AdminTablesPage() {
                   <div className="admin-table-details">
                     <p>Capacidad: {table.capacity} personas</p>
                     <p>Área: {table.area?.label || "Sin área"}</p>
+                    {table.state === "occupied" && table.active_bill_code && (
+                      <p style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+                        Cuenta: {table.active_bill_code}
+                      </p>
+                    )}
                     {table.notes && <p className="admin-table-notes">{table.notes}</p>}
                   </div>
                 </div>
@@ -581,15 +586,8 @@ export default function AdminTablesPage() {
                             </button>
                             <button
                               type="button"
+                              className="admin-btn-danger"
                               onClick={() => handleDeleteArea(area)}
-                              style={{
-                                padding: "0.5rem 1rem",
-                                background: "#dc2626",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "8px",
-                                cursor: "pointer",
-                              }}
                             >
                               Eliminar
                             </button>
@@ -782,16 +780,9 @@ export default function AdminTablesPage() {
               {isEditing && tableFormData.id && (
                 <button
                   type="button"
+                  className="admin-btn-danger large"
                   onClick={handleDeleteTable}
-                  style={{
-                    padding: "0.75rem 1.5rem",
-                    background: "#dc2626",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    marginRight: "auto",
-                  }}
+                  style={{ marginRight: "auto" }}
                 >
                   Eliminar
                 </button>

@@ -180,7 +180,7 @@ export async function getPlateCategories() {
   }
 
   try {
-    const apiResponse = await fetch(`/api/admin/get-plate-categories/`, {
+    const apiResponse = await fetch(`/api/plates/get-plate-categories/`, {
       method: "GET",
       credentials: "include",
     });
@@ -289,7 +289,7 @@ export async function getPlates() {
   };
 
   try {
-    const apiResponse = await fetch(`/api/admin/get-plates/`, {
+    const apiResponse = await fetch(`/api/plates/get-plates/`, {
       method: "GET",
       credentials: "include",
     });
@@ -421,6 +421,30 @@ export async function fetchUsers() {
     response.error = apiResponse.status === 500;
     response.status = apiResponse.status;
     response.users = apiResponse.status === 200 ? apiResult : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function getWaiters() {
+  let response = {
+    waiters: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-waiters/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.waiters = apiResponse.status === 200 ? (apiResult.waiters || []) : [];
   } catch (error) {
     response.error = true;
   }
@@ -620,6 +644,30 @@ export async function getTables() {
 
   try {
     const apiResponse = await fetch(`/api/admin/get-tables/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.tables = apiResponse.status === 200 ? apiResult.tables : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function getAvailableTables() {
+  let response = {
+    tables: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-available-tables/`, {
       method: "GET",
       credentials: "include",
     });
@@ -845,4 +893,145 @@ export async function getReservations() {
   }
 
   return response;
+}
+
+// ===============================
+// Bills (cuentas)
+// ===============================
+
+export async function getBills() {
+  let result = {
+    error: false,
+    status: null,
+    bills: [],
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-bills/`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+    result.bills = apiResponse.status === 200 ? (apiResult.bills || []) : [];
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
+}
+
+export async function createBill(billData) {
+  let result = {
+    error: false,
+    status: null,
+    bill: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/admin/create-bill/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        table: billData.table,   // ID de la mesa
+        waiter: billData.waiter,  // ID del mesero
+        state: billData.state,    // estado: current, closed, etc.
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.bill = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
+}
+
+export async function editBill(billData) {
+  let result = {
+    error: false,
+    status: null,
+    bill: null,
+    validationErrors: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/admin/edit-bill/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: billData.id,
+        table: billData.table,   // ID de la mesa (opcional)
+        waiter: billData.waiter,  // ID del mesero (opcional)
+        state: billData.state,    // estado (opcional)
+      }),
+    });
+
+    const apiResult = await apiResponse.json();
+
+    if (apiResponse.status === 201) {
+      result.bill = apiResult;
+    } else if (apiResponse.status === 400) {
+      result.validationErrors = apiResult;
+    }
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
+}
+
+export async function deleteBill(billId) {
+  let result = {
+    error: false,
+    status: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/admin/delete-bill/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-type": "application/json",
+      },
+      body: JSON.stringify({
+        id: billId,
+      }),
+    });
+
+    result.error = apiResponse.status === 500;
+    result.status = apiResponse.status;
+  } catch (error) {
+    result.error = true;
+  }
+
+  return result;
 }

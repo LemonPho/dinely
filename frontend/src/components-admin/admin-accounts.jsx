@@ -1,110 +1,97 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
+import { useMessagesContext } from "../application-context/messages-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
+import { getBills, createBill, editBill, deleteBill, getAvailableTables, getWaiters } from "../fetch/admin.jsx";
+import Messages from "../util-components/messages.jsx";
+
 
 export default function AdminAccountsPage() {
   const { openedModal, openModal, closeModal, toggleDropdown, openedDropdown, closeDropdown } = useOpenersContext();
+  const { setErrorMessage, setSuccessMessage, resetMessages } = useMessagesContext();
 
-  // Mock data para mesas disponibles (solo strings)
-  const availableTables = [
-    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "12", "15", "A1", "A2", "VIP-1", "VIP-2"
-  ];
-
-  // Mock data para meseros (solo strings)
-  const availableWaiters = [
-    "mesero1", "mesero2", "mesero3", "cocinero1"
-  ];
-
-  // Mock data - no API calls
-  const [accounts, setAccounts] = useState([
-    {
-      id: 1,
-      code: "CTA-001",
-      tableNumber: "5",
-      waiterName: "mesero1",
-      total: 850.00,
-      date: "2024-01-20",
-      time: "19:00",
-      status: "current",
-      items: [
-        { name: "Pollo a la parrilla", quantity: 2, price: 210 },
-        { name: "Limonada natural", quantity: 2, price: 55 },
-      ],
-    },
-    {
-      id: 2,
-      code: "CTA-002",
-      tableNumber: "12",
-      waiterName: "mesero1",
-      total: 380.00,
-      date: "2024-01-20",
-      time: "19:30",
-      status: "closed",
-      items: [
-        { name: "Hamburguesa gourmet", quantity: 2, price: 190 },
-      ],
-    },
-    {
-      id: 3,
-      code: "CTA-003",
-      tableNumber: "8",
-      waiterName: "cocinero1",
-      total: 1260.00,
-      date: "2024-01-21",
-      time: "20:00",
-      status: "current",
-      items: [
-        { name: "Pasta al pesto", quantity: 3, price: 185 },
-        { name: "Smoothie de fresa", quantity: 3, price: 70 },
-        { name: "Guacamole con totopos", quantity: 2, price: 115 },
-      ],
-    },
-    {
-      id: 4,
-      code: "CTA-004",
-      tableNumber: "15",
-      waiterName: "mesero1",
-      total: 565.00,
-      date: "2024-01-19",
-      time: "18:00",
-      status: "closed",
-      items: [
-        { name: "Bruschettas", quantity: 2, price: 130 },
-        { name: "Café latte", quantity: 3, price: 60 },
-        { name: "Papas fritas", quantity: 1, price: 120 },
-      ],
-    },
-    {
-      id: 5,
-      code: "CTA-005",
-      tableNumber: "3",
-      waiterName: "mesero1",
-      total: 370.00,
-      date: "2024-01-22",
-      time: "21:00",
-      status: "current",
-      items: [
-        { name: "Pasta al pesto", quantity: 2, price: 185 },
-      ],
-    },
-  ]);
-
+  const [bills, setBills] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [waiters, setWaiters] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [editingAccount, setEditingAccount] = useState(null);
   const [viewingAccount, setViewingAccount] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  
   const [formData, setFormData] = useState({
-    code: "",
-    tableNumber: "",
-    waiterName: "",
-    total: "",
-    date: "",
-    time: "",
-    status: "current",
+    table: "",
+    waiter: "",
+    state: "current",
   });
+
+  useEffect(() => {
+    loadBills();
+    loadTables();
+    loadWaiters();
+  }, []);
+
+  // Sync formData when entering edit mode and ensure current table is in tables list
+  useEffect(() => {
+    if (editingAccount && isEditMode && !isCreating) {
+      const tableId = editingAccount.table?.id ? editingAccount.table.id.toString() : "";
+      const waiterId = editingAccount.waiter?.id ? editingAccount.waiter.id.toString() : "";
+      const state = editingAccount.state || "current";
+      
+      setFormData({
+        table: tableId,
+        waiter: waiterId,
+        state: state,
+      });
+      
+      // If there's a current table assigned, ensure it's in the tables list
+      // (it might not be in available tables if it's occupied by this bill)
+      if (editingAccount.table) {
+        setTables(prevTables => {
+          const tableExists = prevTables.find(t => t.id === editingAccount.table.id);
+          if (!tableExists) {
+            return [...prevTables, editingAccount.table];
+          }
+          return prevTables;
+        });
+      }
+    }
+  }, [editingAccount?.id]); // Only run when editingAccount.id changes (when we select a different account to edit)
+
+  async function loadBills() {
+    setIsLoading(true);
+    const result = await getBills();
+    if (!result.error && result.status === 200) {
+      setBills(result.bills);
+    }
+    setIsLoading(false);
+  }
+
+  async function loadTables() {
+    const result = await getAvailableTables();
+    if (result.status === 200) {
+      setTables(result.tables);
+    }
+  }
+
+  async function loadWaiters() {
+    const result = await getWaiters();
+    if (result.status === 200) {
+      setWaiters(result.waiters);
+    }
+  }
+
+  function formatDateTimeForDisplay(dateTime) {
+    if (!dateTime) return { date: "", time: "" };
+    const dt = new Date(dateTime);
+    const date = dt.toISOString().split('T')[0];
+    const time = dt.toTimeString().split(' ')[0].substring(0, 5);
+    return { date, time };
+  }
 
   function handleAccountClick(account) {
     setViewingAccount(account);
@@ -116,19 +103,27 @@ export default function AdminAccountsPage() {
 
   function handleEditClick() {
     if (!viewingAccount) return;
+    
+    // Extract IDs safely
+    const tableId = viewingAccount.table?.id ? viewingAccount.table.id.toString() : "";
+    const waiterId = viewingAccount.waiter?.id ? viewingAccount.waiter.id.toString() : "";
+    const state = viewingAccount.state || "current";
+    
+    // Set editing account and mode first
     setEditingAccount(viewingAccount);
     setIsEditMode(true);
+    setIsCreating(false);
+    
+    // Set form data
+    setFormData({
+      table: tableId,
+      waiter: waiterId,
+      state: state,
+    });
+    
+    // Close current modal and open edit modal
     closeModal();
     openModal(`edit-account-${viewingAccount.id}`);
-    setFormData({
-      code: viewingAccount.code,
-      tableNumber: viewingAccount.tableNumber,
-      waiterName: viewingAccount.waiterName,
-      total: viewingAccount.total.toString(),
-      date: viewingAccount.date,
-      time: viewingAccount.time,
-      status: viewingAccount.status,
-    });
   }
 
   function handleCreateClick() {
@@ -137,13 +132,9 @@ export default function AdminAccountsPage() {
     setIsCreating(true);
     setIsEditMode(true);
     setFormData({
-      code: "",
-      tableNumber: "",
-      waiterName: "",
-      total: "",
-      date: "",
-      time: "",
-      status: "current",
+      table: "",
+      waiter: "",
+      state: "current",
     });
     openModal("create-account");
   }
@@ -156,80 +147,160 @@ export default function AdminAccountsPage() {
     });
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    resetMessages();
+
+    const billData = {
+      table: formData.table ? parseInt(formData.table) : null,
+      waiter: formData.waiter ? parseInt(formData.waiter) : null,
+      state: formData.state,
+    };
 
     if (isCreating) {
-      // Crear nueva cuenta
-      const newAccount = {
-        id: Math.max(...accounts.map(a => a.id)) + 1,
-        code: formData.code || `CTA-${String(Math.max(...accounts.map(a => a.id)) + 1).padStart(3, '0')}`,
-        tableNumber: formData.tableNumber,
-        waiterName: formData.waiterName,
-        total: parseFloat(formData.total) || 0,
-        date: formData.date,
-        time: formData.time,
-        status: formData.status,
-        items: [],
-      };
-      setAccounts([...accounts, newAccount]);
+      billData.id = null;
+    } else {
+      billData.id = editingAccount.id;
+    }
+
+    const apiResponse = isCreating ? await createBill(billData) : await editBill(billData);
+
+    if (apiResponse.status === 400) {
+      let errorMessage = `Error al ${isCreating ? 'crear' : 'actualizar'} la cuenta:\n`;
+      
+      // Handle validator errors
+      if (apiResponse.validationErrors) {
+        const errors = apiResponse.validationErrors;
+        if (errors.valid_table === false) {
+          errorMessage += "- La mesa es requerida\n";
+        }
+        if (errors.table_available === false) {
+          errorMessage += "- La mesa ya está siendo usada en otra cuenta activa\n";
+        }
+        if (errors.valid_waiter === false) {
+          errorMessage += "- El mesero es requerido y debe tener el rol de mesero\n";
+        }
+        if (errors.valid_state === false) {
+          errorMessage += "- El estado no es válido\n";
+        }
+        
+        // Handle serializer errors
+        if (errors.table) {
+          errorMessage += `- Mesa: ${Array.isArray(errors.table) ? errors.table[0] : errors.table}\n`;
+        }
+        if (errors.waiter) {
+          errorMessage += `- Mesero: ${Array.isArray(errors.waiter) ? errors.waiter[0] : errors.waiter}\n`;
+        }
+        if (errors.state) {
+          errorMessage += `- Estado: ${Array.isArray(errors.state) ? errors.state[0] : errors.state}\n`;
+        }
+      }
+      
+      setErrorMessage(errorMessage);
+      return;
+    } else if (apiResponse.status === 201) {
+      if (isCreating) {
+        if (apiResponse.bill) {
+          setBills([...bills, apiResponse.bill]);
+        }
+        setSuccessMessage("Cuenta creada con éxito!");
+        // Reload tables since a new bill was created (table is now occupied)
+        loadTables();
+      } else {
+        // Update bill in state
+        const updatedBills = bills.map((bill) => {
+          if (bill.id === editingAccount.id) {
+            return apiResponse.bill;
+          }
+          return bill;
+        });
+        setBills(updatedBills);
+        setViewingAccount(apiResponse.bill);
+        setSuccessMessage("Cuenta actualizada con éxito!");
+        
+        // Reload tables if state changed (table availability may have changed)
+        // Check if state changed from current to closed, or table changed
+        const oldState = editingAccount.state;
+        const newState = apiResponse.bill.state;
+        const oldTableId = editingAccount.table?.id;
+        const newTableId = apiResponse.bill.table?.id;
+        
+        if (oldState !== newState || oldTableId !== newTableId) {
+          loadTables();
+        }
+      }
+      
       closeModal();
+      setIsEditMode(false);
+      setIsCreating(false);
+      setEditingAccount(null);
+      if (!isCreating) {
+        setViewingAccount(apiResponse.bill);
+        openModal(`view-account-${apiResponse.bill.id}`);
+      }
+    } else {
+      setErrorMessage(`Error desconocido con código de estatus: ${apiResponse.status}`);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    resetMessages();
+    if (!editingAccount && !viewingAccount) {
+      return;
+    }
+
+    const billId = editingAccount?.id || viewingAccount?.id;
+
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la cuenta ${viewingAccount?.code || editingAccount?.code}?`)) {
+      return;
+    }
+
+    const apiResponse = await deleteBill(billId);
+
+    if (apiResponse.status === 201) {
+      setBills((prevBills) => prevBills.filter((bill) => bill.id !== billId));
+      setSuccessMessage("Cuenta eliminada con éxito!");
+      
+      // Reload available tables since the deleted bill's table is now available
+      loadTables();
+      
+      setFormData({
+        table: "",
+        waiter: "",
+        state: "current",
+      });
+      setIsEditMode(false);
+      setIsCreating(false);
       setEditingAccount(null);
       setViewingAccount(null);
-      setIsCreating(false);
-      setIsEditMode(false);
-    } else if (editingAccount) {
-      // Editar cuenta existente
-      const updatedAccount = {
-        ...editingAccount,
-        code: formData.code,
-        tableNumber: formData.tableNumber,
-        waiterName: formData.waiterName,
-        total: parseFloat(formData.total) || 0,
-        date: formData.date,
-        time: formData.time,
-        status: formData.status,
-      };
-
-      const updatedAccounts = accounts.map((account) =>
-        account.id === editingAccount.id
-          ? updatedAccount
-          : account
-      );
-      setAccounts(updatedAccounts);
-
-      // Volver a modo vista con la cuenta actualizada
-      setViewingAccount(updatedAccount);
-      setEditingAccount(null);
-      setIsEditMode(false);
       closeModal();
-      openModal(`view-account-${updatedAccount.id}`);
+    } else {
+      setErrorMessage("Error al eliminar la cuenta");
     }
   }
 
   function handleCancelEdit() {
     setIsEditMode(false);
     setEditingAccount(null);
-    // Volver a modo vista
     if (viewingAccount) {
       closeModal();
       openModal(`view-account-${viewingAccount.id}`);
     }
   }
 
-  function getStatusLabel(status) {
-    switch (status) {
+  function getStatusLabel(state) {
+    switch (state) {
       case "current":
         return "Actual";
       case "closed":
         return "Cerrada";
       default:
-        return status;
+        return state;
     }
   }
 
-  function getStatusColor(status) {
-    switch (status) {
+  function getStatusColor(state) {
+    switch (state) {
       case "current":
         return "status-in-progress";
       case "closed":
@@ -257,39 +328,51 @@ export default function AdminAccountsPage() {
       </div>
 
       <div className="admin-content-card">
+        {isLoading ? (
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>Cargando cuentas...</p>
+          </div>
+        ) : bills.length === 0 ? (
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>No hay cuentas disponibles</p>
+          </div>
+        ) : (
         <div className="admin-reservations-list-vertical">
-          {[...accounts].sort((a, b) => {
-            // Ordenar por fecha primero, luego por hora
-            const dateCompare = a.date.localeCompare(b.date);
-            if (dateCompare !== 0) return dateCompare;
-            return a.time.localeCompare(b.time);
-          }).map((account) => (
-            <div
-              key={account.id}
-              className="admin-reservation-row-item"
-              onClick={() => handleAccountClick(account)}
-            >
-              <div className="admin-reservation-row-left">
-                <span className="admin-reservation-row-code">{account.code}</span>
-                <h3>Mesa {account.tableNumber}</h3>
-                <span className="admin-reservation-row-info">
-                  {account.date} · {account.time} · Mesero: {account.waiterName} · Total: ${account.total.toFixed(2)} MXN
-                </span>
-              </div>
-              <div className="admin-reservation-row-right">
-                <span className={`admin-table-status ${getStatusColor(account.status)}`}>
-                  {getStatusLabel(account.status)}
-                </span>
-              </div>
-            </div>
-          ))}
+          {bills.length === 0 ? (
+            <div>No hay cuentas registradas</div>
+          ) : (
+            [...bills].map((bill) => {
+              const { date, time } = formatDateTimeForDisplay(bill.date_time);
+              return (
+                <div
+                  key={bill.id}
+                  className="admin-reservation-row-item"
+                  onClick={() => handleAccountClick(bill)}
+                >
+                  <div className="admin-reservation-row-left">
+                    <span className="admin-reservation-row-code">{bill.code}</span>
+                    <h3>{bill.table?.code ? `${bill.table.code}` : "Sin mesa"}</h3>
+                    <span className="admin-reservation-row-info">
+                      {date} · {time} · Mesero: {bill.waiter?.name || "Sin asignar"} · Total: ${bill.total?.toFixed(2) || "0.00"} MXN
+                    </span>
+                  </div>
+                  <div className="admin-reservation-row-right">
+                    <span className={`admin-table-status ${getStatusColor(bill.state)}`}>
+                      {getStatusLabel(bill.state)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
+        )}
       </div>
 
       {(viewingAccount || editingAccount || isCreating) && (
         <Modal isOpen={
-          (viewingAccount && openedModal === `view-account-${viewingAccount.id}`) ||
-          (editingAccount && openedModal === `edit-account-${editingAccount.id}`) ||
+          (viewingAccount && !isEditMode && openedModal === `view-account-${viewingAccount.id}`) ||
+          (isEditMode && editingAccount && openedModal === `edit-account-${editingAccount.id}`) ||
           (isCreating && openedModal === "create-account")
         }>
           <div className="admin-modal">
@@ -311,6 +394,15 @@ export default function AdminAccountsPage() {
                     Editar
                   </button>
                 )}
+                {viewingAccount && !isEditMode && (
+                  <button
+                    type="button"
+                    className="admin-btn-danger"
+                    onClick={handleDeleteAccount}
+                  >
+                    Eliminar
+                  </button>
+                )}
                 <button
                   className="admin-modal-close"
                   onClick={closeModal}
@@ -319,22 +411,11 @@ export default function AdminAccountsPage() {
                 </button>
               </div>
             </div>
+            <Messages/>
             {isEditMode || isCreating ? (
               <form className="admin-modal-form" onSubmit={handleSubmit}>
                 <div className="admin-form-group">
-                  <label htmlFor="code">Código de Cuenta</label>
-                  <input
-                    type="text"
-                    id="code"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleChange}
-                    placeholder="Se generará automáticamente si se deja vacío"
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label htmlFor="tableNumber">
+                  <label htmlFor="table">
                     Mesa
                     <span style={{ color: "var(--color-primary)" }}> *</span>
                   </label>
@@ -342,151 +423,19 @@ export default function AdminAccountsPage() {
                     <button
                       type="button"
                       className="admin-select-dropdown-button"
-                      id="tableNumber-button"
-                      onClick={(e) => toggleDropdown("tableNumber-dropdown")}
+                      id="table-button"
+                      onClick={(e) => toggleDropdown("table-dropdown")}
                     >
-                      {formData.tableNumber ? (
-                        <span>{formData.tableNumber}</span>
+                      {formData.table ? (
+                        <span>{tables.find(t => t.id === parseInt(formData.table))?.code || formData.table}</span>
                       ) : (
                         <span>Seleccionar mesa...</span>
                       )}
                     </button>
-                    <Dropdown isOpen={openedDropdown === "tableNumber-dropdown"}>
+                    <Dropdown isOpen={openedDropdown === "table-dropdown"}>
                       <ul
                         className="admin-select-dropdown-menu"
-                        id="tableNumber-dropdown"
-                        style={{ overflowY: "scroll", maxHeight: "15rem" }}
-                      >
-                        {availableTables.map((table) => (
-                          <li key={`table-${table}`}>
-                            <a
-                              className="dropdown-item"
-                              onClick={() => {
-                                handleChange({
-                                  target: {
-                                    name: "tableNumber",
-                                    value: table,
-                                  },
-                                });
-                                closeDropdown();
-                              }}
-                            >
-                              {table}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </Dropdown>
-                  </div>
-                </div>
-
-                <div className="admin-form-group">
-                  <label htmlFor="waiterName">
-                    Mesero
-                    <span style={{ color: "var(--color-primary)" }}> *</span>
-                  </label>
-                  <div className="dropdown-div">
-                    <button
-                      type="button"
-                      className="admin-select-dropdown-button"
-                      id="waiterName-button"
-                      onClick={(e) => toggleDropdown("waiterName-dropdown")}
-                    >
-                      {formData.waiterName ? (
-                        <span>{formData.waiterName}</span>
-                      ) : (
-                        <span>Seleccionar mesero...</span>
-                      )}
-                    </button>
-                    <Dropdown isOpen={openedDropdown === "waiterName-dropdown"}>
-                      <ul
-                        className="admin-select-dropdown-menu"
-                        id="waiterName-dropdown"
-                        style={{ overflowY: "scroll", maxHeight: "15rem" }}
-                      >
-                        {availableWaiters.map((waiter) => (
-                          <li key={`waiter-${waiter}`}>
-                            <a
-                              className="dropdown-item"
-                              onClick={() => {
-                                handleChange({
-                                  target: {
-                                    name: "waiterName",
-                                    value: waiter,
-                                  },
-                                });
-                                closeDropdown();
-                              }}
-                            >
-                              {waiter}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </Dropdown>
-                  </div>
-                </div>
-
-                <div className="admin-form-group">
-                  <label htmlFor="total">Total (MXN)</label>
-                  <input
-                    type="number"
-                    id="total"
-                    name="total"
-                    value={formData.total}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label htmlFor="date">Fecha</label>
-                  <input
-                    type="date"
-                    id="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label htmlFor="time">Hora</label>
-                  <input
-                    type="time"
-                    id="time"
-                    name="time"
-                    value={formData.time}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label htmlFor="status">Estado</label>
-                  <div className="dropdown-div">
-                    <button
-                      type="button"
-                      className="admin-select-dropdown-button"
-                      id="status-button"
-                      onClick={(e) => toggleDropdown("status-dropdown")}
-                    >
-                      {formData.status === "current" ? (
-                        <span>Actual</span>
-                      ) : formData.status === "closed" ? (
-                        <span>Cerrada</span>
-                      ) : (
-                        <span>Seleccionar estado...</span>
-                      )}
-                    </button>
-                    <Dropdown isOpen={openedDropdown === "status-dropdown"}>
-                      <ul
-                        className="admin-select-dropdown-menu"
-                        id="status-dropdown"
+                        id="table-dropdown"
                         style={{ overflowY: "scroll", maxHeight: "15rem" }}
                       >
                         <li>
@@ -494,10 +443,107 @@ export default function AdminAccountsPage() {
                             className="dropdown-item"
                             onClick={() => {
                               handleChange({
-                                target: {
-                                  name: "status",
-                                  value: "current",
-                                },
+                                target: { name: "table", value: "" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            Sin mesa
+                          </a>
+                        </li>
+                        {tables.map((table) => (
+                          <li key={`table-${table.id}`}>
+                            <a
+                              className="dropdown-item"
+                              onClick={() => {
+                                handleChange({
+                                  target: { name: "table", value: table.id.toString() },
+                                });
+                                closeDropdown();
+                              }}
+                            >
+                              {table.code}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </Dropdown>
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label htmlFor="waiter">
+                    Mesero
+                    <span style={{ color: "var(--color-primary)" }}> *</span>
+                  </label>
+                  <div className="dropdown-div">
+                    <button
+                      type="button"
+                      className="admin-select-dropdown-button"
+                      id="waiter-button"
+                      onClick={(e) => toggleDropdown("waiter-dropdown")}
+                    >
+                      {formData.waiter ? (
+                        <span>{waiters.find(w => w.id === parseInt(formData.waiter))?.name || formData.waiter}</span>
+                      ) : (
+                        <span>Seleccionar mesero...</span>
+                      )}
+                    </button>
+                    <Dropdown isOpen={openedDropdown === "waiter-dropdown"}>
+                      <ul
+                        className="admin-select-dropdown-menu"
+                        id="waiter-dropdown"
+                        style={{ overflowY: "scroll", maxHeight: "15rem" }}
+                      >
+                        {waiters.map((waiter) => (
+                          <li key={`waiter-${waiter.id}`}>
+                            <a
+                              className="dropdown-item"
+                              onClick={() => {
+                                handleChange({
+                                  target: { name: "waiter", value: waiter.id.toString() },
+                                });
+                                closeDropdown();
+                              }}
+                            >
+                              {waiter.name}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </Dropdown>
+                  </div>
+                </div>
+
+                <div className="admin-form-group">
+                  <label htmlFor="state">Estado</label>
+                  <div className="dropdown-div">
+                    <button
+                      type="button"
+                      className="admin-select-dropdown-button"
+                      id="state-button"
+                      onClick={(e) => toggleDropdown("state-dropdown")}
+                    >
+                      {formData.state === "current" ? (
+                        <span>Actual</span>
+                      ) : formData.state === "closed" ? (
+                        <span>Cerrada</span>
+                      ) : (
+                        <span>Seleccionar estado...</span>
+                      )}
+                    </button>
+                    <Dropdown isOpen={openedDropdown === "state-dropdown"}>
+                      <ul
+                        className="admin-select-dropdown-menu"
+                        id="state-dropdown"
+                        style={{ overflowY: "scroll", maxHeight: "15rem" }}
+                      >
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "state", value: "current" },
                               });
                               closeDropdown();
                             }}
@@ -510,10 +556,7 @@ export default function AdminAccountsPage() {
                             className="dropdown-item"
                             onClick={() => {
                               handleChange({
-                                target: {
-                                  name: "status",
-                                  value: "closed",
-                                },
+                                target: { name: "state", value: "closed" },
                               });
                               closeDropdown();
                             }}
@@ -561,53 +604,46 @@ export default function AdminAccountsPage() {
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Mesa:</span>
-                          <span className="admin-view-value">{viewingAccount.tableNumber}</span>
+                          <span className="admin-view-value">{viewingAccount.table?.code || "Sin mesa"}</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Mesero:</span>
-                          <span className="admin-view-value">{viewingAccount.waiterName}</span>
+                          <span className="admin-view-value">{viewingAccount.waiter?.name || "Sin asignar"}</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Fecha:</span>
-                          <span className="admin-view-value">{viewingAccount.date}</span>
+                          <span className="admin-view-value">{formatDateTimeForDisplay(viewingAccount.date_time).date}</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Hora:</span>
-                          <span className="admin-view-value">{viewingAccount.time}</span>
+                          <span className="admin-view-value">{formatDateTimeForDisplay(viewingAccount.date_time).time}</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Estado:</span>
-                          <span className={`admin-table-status ${getStatusColor(viewingAccount.status)}`}>
-                            {getStatusLabel(viewingAccount.status)}
+                          <span className={`admin-table-status ${getStatusColor(viewingAccount.state)}`}>
+                            {getStatusLabel(viewingAccount.state)}
                           </span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Total:</span>
                           <span className="admin-view-value" style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--color-primary)" }}>
-                            ${viewingAccount.total.toFixed(2)} MXN
+                            ${viewingAccount.total?.toFixed(2) || "0.00"} MXN
+                          </span>
+                        </div>
+                        <div className="admin-view-item">
+                          <span className="admin-view-label">Total Pagado:</span>
+                          <span className="admin-view-value">
+                            ${viewingAccount.total_paid?.toFixed(2) || "0.00"} MXN
+                          </span>
+                        </div>
+                        <div className="admin-view-item">
+                          <span className="admin-view-label">Propina:</span>
+                          <span className="admin-view-value">
+                            ${viewingAccount.tip || 0} MXN
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    {viewingAccount.items && viewingAccount.items.length > 0 && (
-                      <div className="admin-view-section">
-                        <h3>Items de la Cuenta</h3>
-                        <div className="admin-account-items-list">
-                          {viewingAccount.items.map((item, index) => (
-                            <div key={index} className="admin-account-item">
-                              <div className="admin-account-item-name">
-                                <span>{item.name}</span>
-                                <span>x{item.quantity}</span>
-                              </div>
-                              <div className="admin-account-item-price">
-                                ${(item.price * item.quantity).toFixed(2)} MXN
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
               </div>
@@ -618,4 +654,3 @@ export default function AdminAccountsPage() {
     </div>
   );
 }
-

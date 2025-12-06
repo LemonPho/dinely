@@ -66,6 +66,7 @@ class UserCreateReservationSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    date_time = serializers.DateTimeField()
     
     class Meta:
         model = Reservation
@@ -78,6 +79,14 @@ class UserCreateReservationSerializer(serializers.ModelSerializer):
             "amount_people": {"required": True},
             "notes": {"required": False},
         }
+    
+    def to_internal_value(self, data):
+        """
+        Override to handle date_time conversion properly.
+        The date_time comes in as restaurant's local timezone (e.g., -06:00),
+        and we need to ensure it's stored correctly in UTC while preserving the intended date.
+        """
+        return super().to_internal_value(data)
     
     def create(self, validated_data):
         # Import here to avoid circular import
@@ -104,6 +113,7 @@ class UserCreateReservationSerializer(serializers.ModelSerializer):
         
         reservation = Reservation(**validated_data)
         reservation.save()
+        
         return reservation
     
     def update(self, instance, validated_data):
@@ -135,4 +145,32 @@ class ReadReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
         fields = ["id", "code", "name", "email", "phone_number", "date_time", "table", "amount_people", "state", "notes"]
+    
+    def to_representation(self, instance):
+        """
+        Convert date_time from UTC to restaurant's local timezone when reading.
+        Restaurant timezone: America/Mexico_City (UTC-6)
+        """
+        data = super().to_representation(instance)
+        
+        if data.get('date_time') and instance.date_time:
+            # instance.date_time is stored in UTC in the database
+            # Convert from UTC to restaurant's local timezone for display
+            import pytz
+            restaurant_tz = pytz.timezone('America/Mexico_City')
+            
+            # Ensure timezone-aware datetime
+            if instance.date_time.tzinfo is None:
+                from django.utils import timezone
+                utc_dt = timezone.make_aware(instance.date_time, timezone.utc)
+            else:
+                utc_dt = instance.date_time
+            
+            # Convert to restaurant's local timezone
+            local_dt = utc_dt.astimezone(restaurant_tz)
+            
+            # Format as ISO string with timezone offset
+            data['date_time'] = local_dt.isoformat()
+        
+        return data
 

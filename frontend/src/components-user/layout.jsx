@@ -1,8 +1,18 @@
 import Messages from "../util-components/messages.jsx";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { useUserContext } from "../application-context/user-context.jsx";
+import { useAuthenticationContext } from "../application-context/authentication-context.jsx";
 import "../styles/global.css";
 
 export default function Layout() {
+  const { user } = useUserContext();
+  const { logout } = useAuthenticationContext();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout(navigate);
+  }
+
   return (
     <div className="app-root">
       {/* NAVBAR */}
@@ -16,7 +26,25 @@ export default function Layout() {
             <Link to="/ubicacion">Ubicación / Contacto</Link>
             <Link to="/opiniones">Opiniones</Link>
             <Link to="/mis-reservas">Mis reservas</Link>
-            <Link to="/login">Iniciar sesión</Link>
+            {user ? (
+              <button
+                onClick={handleLogout}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "inherit",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  fontSize: "inherit",
+                  padding: 0,
+                  fontFamily: "inherit",
+                }}
+              >
+                Cerrar sesión
+              </button>
+            ) : (
+              <Link to="/login">Iniciar sesión</Link>
+            )}
           </nav>
         </div>
       </header>

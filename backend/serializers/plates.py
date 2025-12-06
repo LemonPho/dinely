@@ -42,7 +42,7 @@ class AdminCreatePlateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "name": {"required": True},
             "price": {"required": True},
-            "description": {"required": True},
+            "description": {"required": False},
         }
     
     def create(self, validated_data):

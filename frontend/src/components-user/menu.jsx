@@ -1,19 +1,70 @@
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useMessagesContext } from "../application-context/messages-context.jsx";
+import Messages from "../util-components/messages.jsx";
 import "../styles/global.css";
-
-// 👇 ajusta los nombres si tus archivos tienen otro nombre
-import guacamoleImg from "../assets/menu/guacamole.jpg";
-import polloImg from "../assets/menu/pollo.jpg";
-import limonadaImg from "../assets/menu/limonada.jpg";
+import { getPlates } from "../fetch/shared.jsx";
 
 export default function Menu() {
-  
+  const { setErrorMessage, resetMessages } = useMessagesContext();
+  const [plates, setPlates] = useState({});
 
+  function groupPlatesByCategory(plates) {
+    // Organizar los platillos por categoría
+    const platesByCategory = {};
+    plates.forEach((plate) => {
+      const categoryLabel = plate.category?.label || "Sin categoría";
+      if (!platesByCategory[categoryLabel]) {
+        platesByCategory[categoryLabel] = [];
+      }
+      platesByCategory[categoryLabel].push(plate);
+    });
+    return platesByCategory;
+  }
+
+  function getCategoryDescription(category) {
+    const descriptions = {
+      entrada: "Para abrir el apetito",
+      platillo: "El plato fuerte de tu visita",
+      comida: "El plato fuerte de tu visita",
+      bebida: "Para acompañar cada bocado",
+    };
+    return descriptions[category.toLowerCase()] || "";
+  }
+
+  function getCategoryColor(category) {
+    const colors = {
+      entrada: { bg: "#ffe9c7", color: "#c56a1a" },
+      platillo: { bg: "#fde2ff", color: "#9b4d96" },
+      comida: { bg: "#fde2ff", color: "#9b4d96" },
+      bebida: { bg: "#dff6ff", color: "#0b7285" },
+    };
+    return colors[category.toLowerCase()] || { bg: "#f3f4f6", color: "#4b5563" };
+  }
+
+  async function retrievePlates() {
+    resetMessages();
+    const apiResponse = await getPlates();
+    if (apiResponse.status === 200) {
+      const platesByCategory = groupPlatesByCategory(apiResponse.plates);
+      setPlates(platesByCategory);
+    } else {
+      setErrorMessage("Hubo un error al obtener los platillos");
+    }
+  }
+
+  useEffect(() => {
+    retrievePlates();
+  }, []);
+
+  const totalPlatesCount = Object.values(plates).reduce((sum, catPlates) => sum + (catPlates?.length || 0), 0);
 
   return (
     <section className="menu-page">
       <div className="container">
-        {/* ENCABEZADO GENERAL */}
+        <Messages />
+
+        {/* ENCABEZADO */}
         <header className="menu-header">
           <p className="menu-eyebrow">Menú Dinely</p>
           <h1>Elige qué se te antoja hoy</h1>
@@ -24,95 +75,49 @@ export default function Menu() {
           </p>
         </header>
 
-        {/* ENTRADA */}
-        <section className="menu-row">
-          <div className="menu-info">
-            <p className="menu-label entrada">Entrada</p>
-            <h2>Para abrir el apetito</h2>
-            <ul className="menu-list">
-              <li>
-                <span>Guacamole con totopos</span>
-                <span>$115 MXN</span>
-              </li>
-              <li>
-                <span>Papas fritas con cheddar</span>
-                <span>$120 MXN</span>
-              </li>
-              <li>
-                <span>Bruschettas con jitomate y albahaca</span>
-                <span>$130 MXN</span>
-              </li>
-            </ul>
-          </div>
+        {/* CATEGORÍAS Y PLATILLOS */}
+        {Object.keys(plates).map((category) => {
+          const categoryColor = getCategoryColor(category);
+          const description = getCategoryDescription(category);
+          return (
+            <section key={category} className="menu-row" style={{ marginBottom: "2.5rem" }}>
+              <div className="menu-info">
+                <span
+                  className="menu-label"
+                  style={{
+                    backgroundColor: categoryColor.bg,
+                    color: categoryColor.color,
+                  }}
+                >
+                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                </span>
+                <ul className="menu-list">
+                  {plates[category].map((plate) => (
+                    <li key={plate.id}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <span>{plate.name}</span>
+                        {plate.description && (
+                          <span style={{ fontSize: "0.85rem", color: "var(--color-text-soft)", fontWeight: 400 }}>
+                            {plate.description}
+                          </span>
+                        )}
+                      </div>
+                      <span>${plate.price.toFixed(2)} MXN</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          );
+        })}
 
-          <div className="menu-illustration">
-            <img
-              src={guacamoleImg}
-              alt="Guacamole con totopos"
-              className="menu-image"
-            />
+        {totalPlatesCount === 0 && (
+          <div className="menu-header" style={{ textAlign: "center", padding: "3rem 0" }}>
+            <p style={{ color: "var(--color-text-soft)", fontSize: "1rem" }}>
+              No hay platillos disponibles en este momento
+            </p>
           </div>
-        </section>
-
-        {/* COMIDA */}
-        <section className="menu-row menu-row-reverse">
-          <div className="menu-info">
-            <p className="menu-label comida">Comida</p>
-            <h2>El plato fuerte de tu visita</h2>
-            <ul className="menu-list">
-              <li>
-                <span>Pollo a la parrilla con verduras</span>
-                <span>$210 MXN</span>
-              </li>
-              <li>
-                <span>Hamburguesa gourmet Dinely</span>
-                <span>$190 MXN</span>
-              </li>
-              <li>
-                <span>Pasta al pesto</span>
-                <span>$185 MXN</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="menu-illustration">
-            <img
-              src={polloImg}
-              alt="Pollo a la parrilla con verduras"
-              className="menu-image"
-            />
-          </div>
-        </section>
-
-        {/* BEBIDA */}
-        <section className="menu-row">
-          <div className="menu-info">
-            <p className="menu-label bebida">Bebida</p>
-            <h2>Para acompañar cada bocado</h2>
-            <ul className="menu-list">
-              <li>
-                <span>Limonada natural</span>
-                <span>$55 MXN</span>
-              </li>
-              <li>
-                <span>Smoothie de fresa</span>
-                <span>$70 MXN</span>
-              </li>
-              <li>
-                <span>Café latte</span>
-                <span>$60 MXN</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="menu-illustration">
-            <img
-              src={limonadaImg}
-              alt="Limonada natural"
-              className="menu-image"
-            />
-          </div>
-        </section>
+        )}
 
         {/* BOTÓN VOLVER AL INICIO */}
         <div className="back-home-container">

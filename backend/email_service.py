@@ -50,3 +50,50 @@ def send_password_setup_email(user, uid, token, request):
         print(f"Error al enviar email: {str(e)}")
         return False
 
+
+def send_email_validation_email(user, code, request):
+    """
+    Envía un email al usuario con un link para validar su correo electrónico.
+    
+    Args:
+        user: Instancia del modelo User
+        code: UUID del código de validación
+        request: Objeto request de Django para obtener el dominio dinámicamente
+    """
+    # Obtener dominio y protocolo dinámicamente
+    url = settings.FRONTEND_URL
+    
+    # Construir URL del frontend
+    verification_url = f"{url}/verify-email/{code}/"
+    
+    # Contenido del email
+    subject = "Verifica tu correo - Dinely"
+    message = f"""
+        Hola {user.name},
+
+        Gracias por registrarte en Dinely. Para activar tu cuenta, por favor haz clic en el siguiente enlace:
+
+        {verification_url}
+
+        Este enlace expirará en 15 minutos por seguridad.
+
+        Si no solicitaste esta cuenta, puedes ignorar este mensaje.
+
+        Saludos,
+        El equipo de Dinely
+        """
+    
+    # Enviar email
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@dinely.com',
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"Error al enviar email: {str(e)}")
+        return False
+

@@ -1,57 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Expand from "../util-components/Expand.jsx";
+import { getKitchenBills, markPlateCooked } from "../fetch/shared";
 import "../styles/global.css";
 import "../styles/admin.css";
 
 export default function EmployeeKitchenPage() {
   const [expandedItems, setExpandedItems] = useState(new Set());
+  const [accounts, setAccounts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data - cuentas con platillos (en producción vendría de una API)
-  const [accounts] = useState([
-    {
-      id: 1,
-      code: "CTA-001",
-      tableNumber: "5",
-      waiterName: "mesero1",
-      total: 850.00,
-      date: "2024-01-20",
-      time: "19:00",
-      status: "current",
-      items: [
-        { id: 1, name: "Pollo a la parrilla", quantity: 2, price: 210, notes: "" },
-        { id: 2, name: "Limonada natural", quantity: 2, price: 55, notes: "" },
-      ],
-    },
-    {
-      id: 5,
-      code: "CTA-005",
-      tableNumber: "3",
-      waiterName: "mesero1",
-      total: 370.00,
-      date: "2024-01-22",
-      time: "21:00",
-      status: "current",
-      items: [
-        { id: 3, name: "Pasta al pesto", quantity: 2, price: 185, notes: "" },
-      ],
-    },
-    {
-      id: 3,
-      code: "CTA-003",
-      tableNumber: "8",
-      waiterName: "cocinero1",
-      total: 1260.00,
-      date: "2024-01-21",
-      time: "20:00",
-      status: "current",
-      items: [
-        { id: 4, name: "Pasta al pesto", quantity: 3, price: 185, notes: "" },
-        { id: 5, name: "Smoothie de fresa", quantity: 3, price: 70, notes: "" },
-        { id: 6, name: "Guacamole con totopos", quantity: 1, price: 115, notes: "Sin cebolla" },
-        { id: 7, name: "Guacamole con totopos", quantity: 1, price: 115, notes: "" },
-      ],
-    },
-  ]);
+  // Transform bill data from API to component format
+  function transformBill(bill) {
+    const dateTime = new Date(bill.date_time);
+    const date = dateTime.toISOString().split('T')[0];
+    const time = dateTime.toTimeString().split(' ')[0].substring(0, 5);
+    
+    return {
+      id: bill.id,
+      code: bill.code,
+      tableNumber: bill.table?.code || "Sin asignar",
+      waiterName: bill.waiter?.name || "",
+      total: bill.total || 0,
+      date: date,
+      time: time,
+      status: bill.state,
+      items: bill.plates?.map((billPlate, index) => ({
+        id: billPlate.id || index,
+        billPlateId: billPlate.id, // Keep the actual BillPlate ID for API calls
+        name: billPlate.plate?.name || "",
+        quantity: 1, // API doesn't have quantity per BillPlate, defaulting to 1
+        price: billPlate.plate?.price || 0,
+        notes: billPlate.notes || "",
+        cooked: billPlate.cooked || false,
+        cooked_at: billPlate.cooked_at || null,
+      })) || [],
+    };
+  }
+
+  // Load bills on mount
+  useEffect(() => {
+    async function loadBills() {
+      setIsLoading(true);
+      const response = await getKitchenBills();
+      
+      if (response.status === 200 && response.bills) {
+        const transformed = response.bills.map(transformBill);
+        setAccounts(transformed);
+      } else {
+        console.error("Error loading bills:", response.error, response.status);
+        setAccounts([]);
+      }
+      setIsLoading(false);
+    }
+    
+    loadBills();
+  }, []);
 
   // Filtrar solo cuentas actuales y ordenar por fecha y hora
   const currentAccounts = accounts
@@ -74,6 +77,28 @@ export default function EmployeeKitchenPage() {
     });
   }
 
+  async function handleToggleCooked(billPlateId, currentCookedStatus) {
+    const newCookedStatus = !currentCookedStatus;
+    const response = await markPlateCooked(billPlateId, newCookedStatus);
+    
+    if (response.success) {
+      // Update the local state
+      setAccounts(prevAccounts => 
+        prevAccounts.map(account => ({
+          ...account,
+          items: account.items.map(item => 
+            item.billPlateId === billPlateId
+              ? { ...item, cooked: response.cooked, cooked_at: response.cooked_at }
+              : item
+          )
+        }))
+      );
+    } else {
+      console.error("Error marking plate as cooked:", response.errorMessage);
+      alert(response.errorMessage || "Error al marcar platillo");
+    }
+  }
+
   return (
     <div className="admin-page">
       <div className="admin-page-header">
@@ -84,7 +109,11 @@ export default function EmployeeKitchenPage() {
       </div>
 
       <div className="admin-content-card">
-        {currentAccounts.length === 0 ? (
+        {isLoading ? (
+          <div style={{ textAlign: "center", padding: "2rem" }}>
+            <p>Cargando pedidos...</p>
+          </div>
+        ) : currentAccounts.length === 0 ? (
           <p>No hay pedidos en cocina en este momento.</p>
         ) : (
           currentAccounts.map((account) => (
@@ -107,25 +136,75 @@ export default function EmployeeKitchenPage() {
                     <div 
                       key={itemKey} 
                       className="admin-account-item"
-                      onClick={() => item.notes && toggleItemExpansion(itemKey)}
                       style={{ 
-                        cursor: item.notes ? "pointer" : "default",
                         flexDirection: "column",
-                        alignItems: "flex-start"
+                        alignItems: "flex-start",
+                        position: "relative",
+                        opacity: item.cooked ? 0.5 : 1,
+                        transition: "opacity 0.3s ease"
                       }}
                     >
-                      <div className="admin-account-item-name" style={{ width: "100%" }}>
-                        <span>{item.name}</span>
-                        <span>x{item.quantity}</span>
-                        {item.notes && (
-                          <span style={{ 
-                            fontSize: "0.85rem", 
-                            color: "var(--color-text-soft)", 
-                            fontStyle: "italic"
-                          }}>
-                            - {item.notes}
-                          </span>
-                        )}
+                      <div style={{ 
+                        display: "flex", 
+                        width: "100%", 
+                        alignItems: "center", 
+                        justifyContent: "space-between",
+                        gap: "1rem"
+                      }}>
+                        <div 
+                          className="admin-account-item-name" 
+                          style={{ 
+                            width: "100%",
+                            flex: 1,
+                            cursor: item.notes ? "pointer" : "default"
+                          }}
+                          onClick={() => item.notes && toggleItemExpansion(itemKey)}
+                        >
+                          <span>{item.name}</span>
+                          <span>x{item.quantity}</span>
+                          {item.notes && (
+                            <span style={{ 
+                              fontSize: "0.85rem", 
+                              color: "var(--color-text-soft)", 
+                              fontStyle: "italic"
+                            }}>
+                              - {item.notes}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (item.billPlateId) {
+                              handleToggleCooked(item.billPlateId, item.cooked);
+                            }
+                          }}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            borderRadius: "8px",
+                            border: "none",
+                            cursor: "pointer",
+                            fontWeight: 600,
+                            fontSize: "0.9rem",
+                            backgroundColor: item.cooked ? "#10b981" : "#f3f4f6",
+                            color: item.cooked ? "#ffffff" : "#374151",
+                            transition: "all 0.2s ease",
+                            whiteSpace: "nowrap",
+                            minWidth: "120px"
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!item.cooked) {
+                              e.target.style.backgroundColor = "#e5e7eb";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!item.cooked) {
+                              e.target.style.backgroundColor = "#f3f4f6";
+                            }
+                          }}
+                        >
+                          {item.cooked ? "✓ Listo" : "Marcar Listo"}
+                        </button>
                       </div>
                       {item.notes && (
                         <Expand expanded={isExpanded} style={{ width: "100%" }}>
@@ -156,4 +235,5 @@ export default function EmployeeKitchenPage() {
     </div>
   );
 }
+
 

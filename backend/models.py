@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+import uuid
+from datetime import timedelta
+from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
@@ -100,7 +103,7 @@ class Plate(models.Model):
     name = models.CharField(max_length=64)
     price = models.FloatField()
     category = models.ForeignKey(PlateCategory, on_delete=models.SET_NULL, related_name="plates", null=True)
-    description = models.CharField(max_length=2048)
+    description = models.CharField(max_length=2048, null=True, blank=True)
     
     class Meta:
         ordering = ["category__label", "name"]
@@ -109,15 +112,59 @@ class Bill(models.Model):
     code = models.CharField(max_length=16) # CUE-######
     table = models.ForeignKey(Table, on_delete=models.SET_NULL, related_name="accounts", null=True)
     waiter = models.ForeignKey(User, on_delete=models.SET_NULL, related_name="accounts", null=True)
-    date_time = models.DateTimeField()
-    state = models.CharField(max_length=64)
-    total = models.FloatField()
-    total_paid = models.FloatField()
-    tip = models.IntegerField()
+    date_time = models.DateTimeField(auto_now_add=True)
+    state = models.CharField(max_length=64, default="current")
+    total = models.FloatField(default=0)
+    total_paid = models.FloatField(default=0)
+    tip = models.IntegerField(default=0)
 
 #Tabla de union entre cuentas y platos, es para tener varios platos en una cuenta
 class BillPlate(models.Model):
     plate = models.ForeignKey(Plate, on_delete=models.CASCADE, related_name="accounts", null=True)
     account = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name="plates", null=True)
     notes = models.CharField(max_length=1024)
+    cooked = models.BooleanField(default=False)
+    cooked_at = models.DateTimeField(null=True, blank=True)
 
+
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews", null=False)
+    content = models.TextField()
+    score = models.PositiveSmallIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    title = models.CharField(max_length=100, blank=True, null=True)
+    
+    def __str__(self):
+        return f"Review by {self.user.name}: {self.title or self.content[:30]}"
+    
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Review"
+        verbose_name_plural = "Reviews"
+
+
+class EmailValidationCode(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="email_validation_codes")
+    code = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['code']),
+            models.Index(fields=['user']),
+        ]
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"EmailValidationCode for {self.user.email} - {self.code}"
+    
+    def is_expired(self):
+        """Check if the code has expired"""
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if the code is valid (not expired and not used)"""
+        return not self.is_expired() and not self.is_used

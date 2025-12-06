@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import datetime
 
-from backend.models import PlateCategory, TableArea, Table
+from backend.models import PlateCategory, TableArea, Table, Reservation, Bill
 
 
 def validate_create_user(user):
@@ -39,10 +39,6 @@ def validate_create_plate(data):
 
     if not name or not name.strip():
         result["valid_name"] = False
-        result["okay"] = False
-
-    if not description or not description.strip():
-        result["valid_description"] = False
         result["okay"] = False
 
     if not category:
@@ -312,6 +308,99 @@ def validate_create_reservation(data):
     # Validate notes (optional, max length 2048 if provided)
     if notes and len(notes) > 2048:
         result["valid_notes"] = False
+        result["okay"] = False
+    
+    return result
+
+def validate_create_bill(data):
+    User = get_user_model()
+    
+    result = {
+        "valid_table": True,
+        "table_available": True,
+        "valid_waiter": True,
+        "data": data,
+        "okay": True
+    }
+
+    table = data.get("table", False)
+    waiter = data.get("waiter", False)
+
+    # Validar que exista una mesa
+    if not table:
+        result["valid_table"] = False
+        result["okay"] = False
+    else:
+        # Validar que la mesa exista en la BD
+        try:
+            table_obj = Table.objects.get(id=table)
+        except Table.DoesNotExist:
+            result["valid_table"] = False
+            result["okay"] = False
+        else:
+            # Validar que la mesa no esté siendo usada en otra cuenta activa
+            active_bill = Bill.objects.filter(table=table_obj, state="current").first()
+            if active_bill:
+                result["table_available"] = False
+                result["okay"] = False
+
+    # Validar que exista un mesero
+    if not waiter:
+        result["valid_waiter"] = False
+        result["okay"] = False
+    else:
+        # Validar que el mesero exista en la BD y tenga el rol de mesero
+        if not User.objects.filter(id=waiter, is_waiter=True).exists():
+            result["valid_waiter"] = False
+            result["okay"] = False
+
+    return result
+
+
+def validate_edit_bill(data, bill_id=None):
+    from backend.models import Table, Bill
+    User = get_user_model()
+    
+    result = {
+        "valid_table": True,
+        "table_available": True,
+        "valid_waiter": True,
+        "valid_state": True,
+        "data": data,
+        "okay": True
+    }
+
+    table = data.get("table", None)
+    waiter = data.get("waiter", None)
+    state = data.get("state", None)
+
+    # Validar mesa si se proporciona (opcional para edición)
+    if table is not None:
+        try:
+            table_obj = Table.objects.get(id=table)
+        except Table.DoesNotExist:
+            result["valid_table"] = False
+            result["okay"] = False
+        else:
+            # Validar que la mesa no esté siendo usada en otra cuenta activa (excluyendo la cuenta actual si se está editando)
+            active_bills = Bill.objects.filter(table=table_obj, state="current")
+            if bill_id:
+                active_bills = active_bills.exclude(id=bill_id)
+            
+            if active_bills.exists():
+                result["table_available"] = False
+                result["okay"] = False
+
+    # Validar mesero si se proporciona (opcional para edición)
+    if waiter is not None:
+        if not User.objects.filter(id=waiter, is_waiter=True).exists():
+            result["valid_waiter"] = False
+            result["okay"] = False
+
+    # Validar estado si se proporciona (opcional para edición)
+    # No hay restricciones específicas de estado, solo validar que no esté vacío si se proporciona
+    if state is not None and (not state or not state.strip()):
+        result["valid_state"] = False
         result["okay"] = False
 
     return result
