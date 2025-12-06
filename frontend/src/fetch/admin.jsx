@@ -428,6 +428,30 @@ export async function fetchUsers() {
   return response;
 }
 
+export async function getWaiters() {
+  let response = {
+    waiters: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-waiters/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.waiters = apiResponse.status === 200 ? (apiResult.waiters || []) : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
 export async function createTableArea(area) {
   let result = {
     error: false,
@@ -620,6 +644,30 @@ export async function getTables() {
 
   try {
     const apiResponse = await fetch(`/api/admin/get-tables/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.tables = apiResponse.status === 200 ? apiResult.tables : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
+export async function getAvailableTables() {
+  let response = {
+    tables: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/admin/get-available-tables/`, {
       method: "GET",
       credentials: "include",
     });
@@ -859,7 +907,7 @@ export async function getBills() {
   };
 
   try {
-    const apiResponse = await fetch(`/api/admin/list-bills/`, {
+    const apiResponse = await fetch(`/api/admin/get-bills/`, {
       method: "GET",
       credentials: "include",
     });
@@ -868,7 +916,7 @@ export async function getBills() {
 
     result.error = apiResponse.status === 500;
     result.status = apiResponse.status;
-    result.bills = apiResponse.status === 200 ? apiResult : [];
+    result.bills = apiResponse.status === 200 ? (apiResult.bills || []) : [];
   } catch (error) {
     result.error = true;
   }

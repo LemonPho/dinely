@@ -91,6 +91,11 @@ def delete_bill(request):
     except Bill.DoesNotExist:
         return HttpResponse(status=404)
 
+    # If bill is active and has a table, free the table
+    if bill.table and bill.state == 'current':
+        bill.table.state = 'available'
+        bill.table.save()
+
     # Eliminar la factura
     bill.delete()
 

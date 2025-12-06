@@ -123,6 +123,8 @@ class BillPlate(models.Model):
     plate = models.ForeignKey(Plate, on_delete=models.CASCADE, related_name="accounts", null=True)
     account = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name="plates", null=True)
     notes = models.CharField(max_length=1024)
+    cooked = models.BooleanField(default=False)
+    cooked_at = models.DateTimeField(null=True, blank=True)
 
 
 class Review(models.Model):

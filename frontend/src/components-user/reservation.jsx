@@ -217,7 +217,7 @@ export default function Reserva() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="tuemail@ejemplo.com"
-                    required={!isUserLoggedIn}
+                    required={false}
                     readOnly={isUserLoggedIn}
                     style={isUserLoggedIn ? { backgroundColor: "#f5f5f5", cursor: "not-allowed" } : {}}
                   />

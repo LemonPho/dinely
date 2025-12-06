@@ -40,8 +40,8 @@ export const adminNavItems = [
 // Employee navigation configuration
 export const employeeNavItems = [
   { path: "/empleado", label: "Panel" },
-  { path: "/empleado/mesas", label: "Mesas Disponibles" },
-  { path: "/empleado/cocina", label: "Cocina" },
+  { path: "/empleado/mesas", label: "Mesas Disponibles", waiterOnly: true },
+  { path: "/empleado/cocina", label: "Cocina", kitchenOnly: true },
   { path: "/empleado/cuentas", label: "Mis Cuentas", waiterOnly: true },
 ];
 

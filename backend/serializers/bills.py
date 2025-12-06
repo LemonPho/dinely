@@ -33,11 +33,27 @@ class AdminCreateBillSerializer(serializers.ModelSerializer):
         # date_time is auto-set by model (auto_now_add=True)
         # state, total, total_paid, tip have defaults in the model
         
+        # Get table and state before creating bill
+        table = validated_data.get('table')
+        state = validated_data.get('state', 'current')  # Default is 'current'
+        
         bill = Bill(**validated_data)
         bill.save()
+        
+        # If bill is active (current) and has a table, mark table as occupied
+        if table and state == 'current':
+            table.state = 'occupied'
+            table.save()
+        
         return bill
     
     def update(self, instance, validated_data):
+        # Store old table and state for state management
+        old_table = instance.table
+        old_state = instance.state
+        new_table = validated_data.get("table", old_table)
+        new_state = validated_data.get("state", old_state)
+        
         # Update table if provided
         if "table" in validated_data:
             instance.table = validated_data["table"]
@@ -51,6 +67,22 @@ class AdminCreateBillSerializer(serializers.ModelSerializer):
             instance.state = validated_data["state"]
         
         instance.save()
+        
+        # Handle table state changes
+        # If old table existed and bill was active, free it
+        if old_table and old_state == 'current':
+            old_table.state = 'available'
+            old_table.save()
+        
+        # If new table exists and bill is active, mark it as occupied
+        if new_table and new_state == 'current':
+            new_table.state = 'occupied'
+            new_table.save()
+        # If new table exists but bill is closed, keep it available
+        elif new_table and new_state == 'closed':
+            new_table.state = 'available'
+            new_table.save()
+        
         return instance
 
 
@@ -59,7 +91,7 @@ class ReadBillPlateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BillPlate
-        fields = ["id", "plate", "notes"]
+        fields = ["id", "plate", "notes", "cooked", "cooked_at"]
 
 
 class CreateBillPlateSerializer(serializers.ModelSerializer):

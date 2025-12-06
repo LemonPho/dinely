@@ -547,15 +547,8 @@ export default function AdminPlatesPage() {
                             </button>
                             <button
                               type="button"
+                              className="admin-btn-danger"
                               onClick={() => handleDeleteCategory(category)}
-                              style={{
-                                padding: "0.5rem 1rem",
-                                background: "#dc2626",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "8px",
-                                cursor: "pointer",
-                              }}
                             >
                               Eliminar
                             </button>
@@ -680,16 +673,9 @@ export default function AdminPlatesPage() {
               {isEditing && plateFormData.id && (
                 <button
                   type="button"
+                  className="admin-btn-danger large"
                   onClick={handleDeletePlate}
-                  style={{
-                    padding: "0.75rem 1.5rem",
-                    background: "#dc2626",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    marginRight: "auto",
-                  }}
+                  style={{ marginRight: "auto" }}
                 >
                   Eliminar
                 </button>

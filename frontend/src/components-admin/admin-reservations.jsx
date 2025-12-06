@@ -5,7 +5,7 @@ import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
 import "../styles/global.css";
 import "../styles/admin.css";
-import { createReservation, editReservation, deleteReservation, getReservations, getTables } from "../fetch/Admin.jsx";
+import { createReservation, editReservation, deleteReservation, getReservations, getTables } from "../fetch/admin.jsx";
 import Messages from "../util-components/messages.jsx";
 
 export default function AdminReservationsPage() {
@@ -281,10 +281,14 @@ export default function AdminReservationsPage() {
         return "Activa";
       case "in_progress":
         return "En Curso";
+      case "in_course":
+        return "En Curso";
       case "cancelled":
         return "Cancelada";
       case "completed":
         return "Completada";
+      case "finalized":
+        return "Finalizada";
       default:
         return status;
     }
@@ -296,9 +300,13 @@ export default function AdminReservationsPage() {
         return "status-available";
       case "in_progress":
         return "status-in-progress";
+      case "in_course":
+        return "status-in-progress";
       case "cancelled":
         return "status-occupied";
       case "completed":
+        return "status-reserved";
+      case "finalized":
         return "status-reserved";
       default:
         return "";
@@ -537,10 +545,14 @@ export default function AdminReservationsPage() {
                         <span>Activa</span>
                       ) : formData.status === "in_progress" ? (
                         <span>En Curso</span>
+                      ) : formData.status === "in_course" ? (
+                        <span>En Curso</span>
                       ) : formData.status === "cancelled" ? (
                         <span>Cancelada</span>
                       ) : formData.status === "completed" ? (
                         <span>Completada</span>
+                      ) : formData.status === "finalized" ? (
+                        <span>Finalizada</span>
                       ) : (
                         <span>Seleccionar estado...</span>
                       )}
@@ -582,6 +594,19 @@ export default function AdminReservationsPage() {
                             className="dropdown-item"
                             onClick={() => {
                               handleChange({
+                                target: { name: "status", value: "in_course" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            En Curso (in_course)
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
                                 target: { name: "status", value: "cancelled" },
                               });
                               closeDropdown();
@@ -601,6 +626,19 @@ export default function AdminReservationsPage() {
                             }}
                           >
                             Completada
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="dropdown-item"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "status", value: "finalized" },
+                              });
+                              closeDropdown();
+                            }}
+                          >
+                            Finalizada
                           </a>
                         </li>
                       </ul>
@@ -624,16 +662,9 @@ export default function AdminReservationsPage() {
                   {isEditing && formData.id && (
                     <button
                       type="button"
+                      className="admin-btn-danger large"
                       onClick={handleDeleteReservation}
-                      style={{
-                        padding: "0.75rem 1.5rem",
-                        background: "#dc2626",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                        marginRight: "auto",
-                      }}
+                      style={{ marginRight: "auto" }}
                     >
                       Eliminar
                     </button>

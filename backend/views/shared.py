@@ -51,6 +51,35 @@ def get_tables(request):
 
     return JsonResponse({"tables": serializer.data}, status=200)
 
+def get_available_tables(request):
+    """
+    Get only tables that are available (not currently in use by active bills).
+    Tables are considered available if:
+    - Their state is 'available', OR
+    - They are not associated with any bill that has state 'current'
+    """
+    if not request.method == "GET":
+        return HttpResponse(status=405)
+
+    if not request.user.is_authenticated or not (request.user.is_admin or request.user.is_waiter or request.user.is_kitchen):
+        return HttpResponse(status=401)
+
+    # Get all tables
+    all_tables = Table.objects.all()
+    
+    # Get IDs of tables that are currently in use by active bills
+    occupied_table_ids = Bill.objects.filter(
+        state='current',
+        table__isnull=False
+    ).values_list('table_id', flat=True)
+    
+    # Filter out occupied tables
+    available_tables = all_tables.exclude(id__in=occupied_table_ids)
+    
+    serializer = ReadTableSerializer(available_tables, many=True)
+
+    return JsonResponse({"tables": serializer.data}, status=200)
+
 def get_table_areas(request):
     if not request.method == "GET":
         return HttpResponse(status=405)

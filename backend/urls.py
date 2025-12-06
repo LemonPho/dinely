@@ -6,12 +6,14 @@ from backend.views import shared
 from backend.views.authentication import authentication
 from backend.views.reviews import reviews
 from backend.views.waiter import bills as waiter_bills, reservations as waiter_reservations
+from backend.views.kitchen import plates as kitchen_plates
 
 urlpatterns = [
     path("admin/create-user/", users.create_user),
     path("admin/edit-user/", users.edit_user),
     path("admin/delete-user/", users.delete_user),
     path("admin/list-users/", users.list_users),
+    path("admin/get-waiters/", users.get_waiters),
 
     path("admin/create-plate-category/", plates.create_plate_category),
     path("admin/edit-plate-category/", plates.edit_plate_category),
@@ -28,6 +30,7 @@ urlpatterns = [
     path("admin/edit-table/", tables.edit_table),
     path("admin/delete-table/", tables.delete_table),
     path("admin/get-tables/", shared.get_tables),
+    path("admin/get-available-tables/", shared.get_available_tables),
 
     path("admin/create-reservation/", reservations.create_reservation),
     path("admin/edit-reservation/", reservations.edit_reservation),
@@ -61,6 +64,8 @@ urlpatterns = [
     path("plates/get-plates/", shared.get_plates),
 
     path("kitchen/get-bills/", shared.get_bills),
+    path("kitchen/mark-plate-cooked/<int:bill_plate_id>/", kitchen_plates.mark_plate_cooked),
+    path("waiter/create-bill/", waiter_bills.create_bill),
     path("waiter/get-bills/", waiter_bills.get_waiter_bills),
     path("waiter/get-bill/<int:bill_id>/", waiter_bills.get_waiter_bill),
     path("waiter/add-plate-to-bill/<int:bill_id>/", waiter_bills.add_plate_to_bill),

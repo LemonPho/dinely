@@ -2,9 +2,10 @@ import json
 from datetime import datetime
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
-from backend.models import Reservation, Table
+from backend.models import Reservation, Table, Bill
 from backend.serializers.reservations import ReadReservationSerializer
 from backend.views.validators import validate_assign_table_to_reservation
+from backend.views.admin.utils import generate_bill_code, get_waiter_with_least_bills
 
 
 def get_waiter_reservations(request):
@@ -71,18 +72,34 @@ def assign_table_to_reservation(request, reservation_id):
     table = validation_result["table"]
     
     reservation.table = table
+    reservation.state = "in_course"  # Change state to indicate reservation is in progress
     reservation.save()
     
-    # TODO: Create bill here after table assignment
-    # Bill should be created with:
-    # - code: auto-generated (CUE-######)
-    # - table: assigned table
-    # - waiter: request.user
-    # - date_time: current datetime
-    # - state: "open"
-    # - total: 0.0
-    # - total_paid: 0.0
-    # - tip: 0
+    # Mark table as occupied when assigned to a reservation
+    table.state = "occupied"
+    table.save()
+    
+    # Create bill automatically after table assignment
+    # Find waiter with least number of current bills
+    waiter = get_waiter_with_least_bills()
+    
+    if waiter is None:
+        # If no waiters available, return error
+        return JsonResponse({"error": "No waiters available to assign"}, status=500)
+    
+    # Generate bill code
+    bill_code = generate_bill_code()
+    
+    # Create bill
+    bill = Bill.objects.create(
+        code=bill_code,
+        table=table,
+        waiter=waiter,
+        state="current",
+        total=0.0,
+        total_paid=0.0,
+        tip=0
+    )
     
     reservation.refresh_from_db()
     serializer = ReadReservationSerializer(reservation)

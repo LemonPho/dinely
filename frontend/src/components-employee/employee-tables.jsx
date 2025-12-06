@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useOpenersContext } from "../application-context/openers-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
-import { getTableAreas, getTables, getWaiterReservations, assignTableToReservation } from "../fetch/shared";
+import { getTableAreas, getTables, getWaiterReservations, assignTableToReservation, createBill } from "../fetch/shared";
 import "../styles/global.css";
 import "../styles/admin.css";
 
@@ -26,6 +26,8 @@ export default function EmployeeTablesPage() {
     tableCode: "",
   });
   const [reservationError, setReservationError] = useState(null);
+  const [capacityWarning, setCapacityWarning] = useState(null);
+  const [assignError, setAssignError] = useState(null);
 
   function groupTablesByArea(tables) {
     // Organizar las mesas por área
@@ -65,39 +67,62 @@ export default function EmployeeTablesPage() {
   }
 
   function handleAssignTable(table) {
+    // Prevent assigning to occupied tables - just return without doing anything
+    if (table.state === "occupied") {
+      return;
+    }
+    
     setAssigningTable(table);
     setAssignFormData({
       customerName: "",
       partySize: "",
     });
+    setAssignError(null);
     openModal(`assign-table-${table.id}`);
   }
 
-  function handleAssignSubmit(e) {
+  async function handleAssignSubmit(e) {
     e.preventDefault();
-    
-    // Crear nueva cuenta para el cliente
-    const newAccount = {
-      id: Date.now(),
-      code: `CTA-${String(Date.now()).slice(-6)}`,
-      tableNumber: assigningTable.code,
-      waiterName: "currentEmployee",
-      total: 0,
-      date: new Date().toISOString().split("T")[0],
-      time: new Date().toTimeString().slice(0, 5),
-      status: "current",
-      items: [],
-    };
+    setAssignError(null);
 
-    // Aquí se haría la llamada a la API
-    alert(`Cliente ${assignFormData.customerName} asignado a Mesa ${assigningTable.code}`);
-    
-    closeModal();
-    setAssigningTable(null);
-    setAssignFormData({
-      customerName: "",
-      partySize: "",
-    });
+    // Validate form data
+    if (!assignFormData.customerName.trim()) {
+      setAssignError("El nombre del cliente es requerido");
+      return;
+    }
+
+    if (!assignFormData.partySize || parseInt(assignFormData.partySize) < 1) {
+      setAssignError("El número de personas debe ser al menos 1");
+      return;
+    }
+
+    // Check capacity if party size exceeds table capacity
+    const partySize = parseInt(assignFormData.partySize);
+    if (partySize > assigningTable.capacity) {
+      const proceed = window.confirm(
+        `La mesa ${assigningTable.code} tiene capacidad para ${assigningTable.capacity} personas, pero el grupo es de ${partySize}. ¿Deseas continuar? (Puedes añadir sillas adicionales)`
+      );
+      if (!proceed) {
+        return;
+      }
+    }
+
+    // Create bill via API
+    const apiResponse = await createBill(assigningTable.id);
+
+    if (apiResponse.status === 201) {
+      // Success - refresh tables and close modal
+      await retrieveTables();
+      closeModal();
+      setAssigningTable(null);
+      setAssignFormData({
+        customerName: "",
+        partySize: "",
+      });
+    } else {
+      // Error - show error message
+      setAssignError(apiResponse.errorMessage || "Error al crear cuenta");
+    }
   }
 
   function handleAssignFormChange(e) {
@@ -117,6 +142,7 @@ export default function EmployeeTablesPage() {
     setAssigningReservation(reservation);
     setReservationTableFormData({ tableCode: "" });
     setReservationError(null);
+    setCapacityWarning(null);
     openModal(`assign-reservation-table-${reservation.id}`);
   }
 
@@ -152,6 +178,27 @@ export default function EmployeeTablesPage() {
       ...reservationTableFormData,
       [name]: value,
     });
+    
+    // Check capacity when table is selected
+    if (name === "tableCode" && value && assigningReservation) {
+      const selectedTable = flatTables.find(table => table.code === value);
+      if (selectedTable && assigningReservation.amount_people) {
+        const partySize = assigningReservation.amount_people;
+        const tableCapacity = selectedTable.capacity;
+        
+        if (partySize > tableCapacity) {
+          setCapacityWarning(
+            `Advertencia: Esta mesa tiene capacidad para ${tableCapacity} personas, pero la reservación es para ${partySize} personas. Puedes proceder si traerás sillas adicionales.`
+          );
+        } else {
+          setCapacityWarning(null);
+        }
+      } else {
+        setCapacityWarning(null);
+      }
+    } else if (name === "tableCode" && !value) {
+      setCapacityWarning(null);
+    }
   }
 
   function formatReservationTime(dateTimeString) {
@@ -222,16 +269,24 @@ export default function EmployeeTablesPage() {
                   key={table.id}
                   className="admin-table-card"
                   onClick={() => handleAssignTable(table)}
-                  style={{ cursor: "pointer" }}
+                  style={{ 
+                    cursor: table.state === "occupied" ? "not-allowed" : "pointer",
+                    opacity: table.state === "occupied" ? 0.7 : 1
+                  }}
                 >
                   <div className="admin-table-header">
-                    <h3>Mesa {table.code}</h3>
+                    <h3>{table.code}</h3>
                     <span className={`admin-table-status status-${table.state || "available"}`}>
                       {table.state === "available" ? "Disponible" : table.state || "Disponible"}
                     </span>
                   </div>
                   <div className="admin-table-details">
                     <p>Capacidad: {table.capacity} personas</p>
+                    {table.state === "occupied" && table.active_bill_code && (
+                      <p style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+                        Cuenta: {table.active_bill_code}
+                      </p>
+                    )}
                     {table.notes && <p className="admin-table-notes">{table.notes}</p>}
                   </div>
                 </div>
@@ -267,13 +322,13 @@ export default function EmployeeTablesPage() {
                 <div className="admin-table-header">
                   <h3>{reservation.code}</h3>
                   <span className={`admin-table-status status-${reservation.table ? "occupied" : "available"}`}>
-                    {reservation.table ? `Mesa ${reservation.table.code}` : "Sin mesa"}
+                    {reservation.table ? `${reservation.table.code}` : "Sin mesa"}
                   </span>
                 </div>
                 <div className="admin-table-details">
-                  <p><strong>Cliente:</strong> {reservation.first_name} {reservation.last_name}</p>
+                  <p><strong>Cliente:</strong> {reservation.name}</p>
                   <p><strong>Hora:</strong> {formatReservationTime(reservation.date_time)}</p>
-                  <p><strong>Personas:</strong> {reservation.people}</p>
+                  <p><strong>Personas:</strong> {reservation.amount_people}</p>
                   {reservation.table_area && (
                     <p><strong>Área preferida:</strong> {reservation.table_area.label}</p>
                   )}
@@ -313,6 +368,7 @@ export default function EmployeeTablesPage() {
                   closeModal();
                   setAssigningReservation(null);
                   setReservationError(null);
+                  setCapacityWarning(null);
                 }}
               >
                 ×
@@ -334,7 +390,7 @@ export default function EmployeeTablesPage() {
                 <label>Cliente</label>
                 <input
                   type="text"
-                  value={`${assigningReservation.first_name} ${assigningReservation.last_name}`}
+                  value={assigningReservation.name}
                   disabled
                   style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
                 />
@@ -354,7 +410,7 @@ export default function EmployeeTablesPage() {
                 <label>Número de Personas</label>
                 <input
                   type="text"
-                  value={assigningReservation.people}
+                  value={assigningReservation.amount_people}
                   disabled
                   style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
                 />
@@ -386,11 +442,17 @@ export default function EmployeeTablesPage() {
                   <option value="">-- Seleccionar mesa --</option>
                   {getAvailableTablesForReservation(assigningReservation).map((table) => (
                     <option key={table.id} value={table.code}>
-                      Mesa {table.code} - {getAreaLabel(table.area)} (Cap: {table.capacity})
+                      {table.code} - {getAreaLabel(table.area)} (Cap: {table.capacity})
                     </option>
                   ))}
                 </select>
               </div>
+
+              {capacityWarning && (
+                <div style={{ color: "#e67e22", padding: "0.75rem", backgroundColor: "#fef5e7", borderRadius: "8px", fontSize: "0.9rem", border: "1px solid #f39c12" }}>
+                  ⚠️ {capacityWarning}
+                </div>
+              )}
 
               {reservationError && (
                 <div style={{ color: "#e74c3c", padding: "0.75rem", backgroundColor: "#fdf2f2", borderRadius: "8px", fontSize: "0.9rem" }}>
@@ -446,7 +508,7 @@ export default function EmployeeTablesPage() {
                 <input
                   type="text"
                   id="tableNumber"
-                  value={`Mesa ${assigningTable.code} - ${getAreaLabel(assigningTable.area)}`}
+                  value={`${assigningTable.code} - ${getAreaLabel(assigningTable.area)}`}
                   disabled
                   style={{ backgroundColor: "#f5f5f5", cursor: "not-allowed" }}
                 />
@@ -475,10 +537,15 @@ export default function EmployeeTablesPage() {
                   onChange={handleAssignFormChange}
                   required
                   min="1"
-                  max={assigningTable.capacity}
-                  placeholder={`Máximo ${assigningTable.capacity} personas`}
+                  placeholder={`Capacidad: ${assigningTable.capacity} personas`}
                 />
               </div>
+
+              {assignError && (
+                <div style={{ color: "#e74c3c", padding: "0.75rem", backgroundColor: "#fdf2f2", borderRadius: "8px", fontSize: "0.9rem" }}>
+                  {assignError}
+                </div>
+              )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <button
@@ -494,6 +561,7 @@ export default function EmployeeTablesPage() {
                   onClick={() => {
                     closeModal();
                     setAssigningTable(null);
+                    setAssignError(null);
                   }}
                   style={{ width: "100%" }}
                 >

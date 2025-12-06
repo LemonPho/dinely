@@ -33,10 +33,22 @@ export default function EmployeeLayoutPage() {
         <nav className="admin-nav">
           {employeeNavItems
             .filter((item) => {
+              // Admins can see everything
+              if (user?.is_admin === true) {
+                return true;
+              }
+              
               // Show waiter-only items only if user is a waiter
               if (item.waiterOnly) {
                 return user?.is_waiter === true;
               }
+              
+              // Show kitchen-only items only if user is kitchen
+              if (item.kitchenOnly) {
+                return user?.is_kitchen === true;
+              }
+              
+              // Show items without restrictions (like Panel) to everyone
               return true;
             })
             .map((item) => (

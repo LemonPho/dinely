@@ -3,12 +3,9 @@ import { useOpenersContext } from "../application-context/openers-context.jsx";
 import { useMessagesContext } from "../application-context/messages-context.jsx";
 import Modal from "../util-components/Modal.jsx";
 import Dropdown from "../util-components/Dropdown.jsx";
-import { getBills } from "../fetch/shared";
 import "../styles/global.css";
 import "../styles/admin.css";
-import { getBills, createBill, editBill, deleteBill } from "../fetch/admin.jsx";
-import { getTables } from "../fetch/admin.jsx";
-import { fetchUsers } from "../fetch/admin.jsx";
+import { getBills, createBill, editBill, deleteBill, getAvailableTables, getWaiters } from "../fetch/admin.jsx";
 import Messages from "../util-components/messages.jsx";
 
 
@@ -19,6 +16,7 @@ export default function AdminAccountsPage() {
   const [bills, setBills] = useState([]);
   const [tables, setTables] = useState([]);
   const [waiters, setWaiters] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [editingAccount, setEditingAccount] = useState(null);
   const [viewingAccount, setViewingAccount] = useState(null);
@@ -37,26 +35,53 @@ export default function AdminAccountsPage() {
     loadWaiters();
   }, []);
 
+  // Sync formData when entering edit mode and ensure current table is in tables list
+  useEffect(() => {
+    if (editingAccount && isEditMode && !isCreating) {
+      const tableId = editingAccount.table?.id ? editingAccount.table.id.toString() : "";
+      const waiterId = editingAccount.waiter?.id ? editingAccount.waiter.id.toString() : "";
+      const state = editingAccount.state || "current";
+      
+      setFormData({
+        table: tableId,
+        waiter: waiterId,
+        state: state,
+      });
+      
+      // If there's a current table assigned, ensure it's in the tables list
+      // (it might not be in available tables if it's occupied by this bill)
+      if (editingAccount.table) {
+        setTables(prevTables => {
+          const tableExists = prevTables.find(t => t.id === editingAccount.table.id);
+          if (!tableExists) {
+            return [...prevTables, editingAccount.table];
+          }
+          return prevTables;
+        });
+      }
+    }
+  }, [editingAccount?.id]); // Only run when editingAccount.id changes (when we select a different account to edit)
+
   async function loadBills() {
+    setIsLoading(true);
     const result = await getBills();
     if (!result.error && result.status === 200) {
       setBills(result.bills);
     }
+    setIsLoading(false);
   }
 
   async function loadTables() {
-    const result = await getTables();
+    const result = await getAvailableTables();
     if (result.status === 200) {
       setTables(result.tables);
     }
   }
 
   async function loadWaiters() {
-    const result = await fetchUsers();
+    const result = await getWaiters();
     if (result.status === 200) {
-      // Filter only waiters
-      const waitersList = result.users.filter(user => user.is_waiter);
-      setWaiters(waitersList);
+      setWaiters(result.waiters);
     }
   }
 
@@ -78,14 +103,25 @@ export default function AdminAccountsPage() {
 
   function handleEditClick() {
     if (!viewingAccount) return;
+    
+    // Extract IDs safely
+    const tableId = viewingAccount.table?.id ? viewingAccount.table.id.toString() : "";
+    const waiterId = viewingAccount.waiter?.id ? viewingAccount.waiter.id.toString() : "";
+    const state = viewingAccount.state || "current";
+    
+    // Set editing account and mode first
     setEditingAccount(viewingAccount);
     setIsEditMode(true);
     setIsCreating(false);
+    
+    // Set form data
     setFormData({
-      table: viewingAccount.table_id || "",
-      waiter: viewingAccount.waiter_id || "",
-      state: viewingAccount.state || "current",
+      table: tableId,
+      waiter: waiterId,
+      state: state,
     });
+    
+    // Close current modal and open edit modal
     closeModal();
     openModal(`edit-account-${viewingAccount.id}`);
   }
@@ -168,6 +204,8 @@ export default function AdminAccountsPage() {
           setBills([...bills, apiResponse.bill]);
         }
         setSuccessMessage("Cuenta creada con éxito!");
+        // Reload tables since a new bill was created (table is now occupied)
+        loadTables();
       } else {
         // Update bill in state
         const updatedBills = bills.map((bill) => {
@@ -179,6 +217,17 @@ export default function AdminAccountsPage() {
         setBills(updatedBills);
         setViewingAccount(apiResponse.bill);
         setSuccessMessage("Cuenta actualizada con éxito!");
+        
+        // Reload tables if state changed (table availability may have changed)
+        // Check if state changed from current to closed, or table changed
+        const oldState = editingAccount.state;
+        const newState = apiResponse.bill.state;
+        const oldTableId = editingAccount.table?.id;
+        const newTableId = apiResponse.bill.table?.id;
+        
+        if (oldState !== newState || oldTableId !== newTableId) {
+          loadTables();
+        }
       }
       
       closeModal();
@@ -211,6 +260,9 @@ export default function AdminAccountsPage() {
     if (apiResponse.status === 201) {
       setBills((prevBills) => prevBills.filter((bill) => bill.id !== billId));
       setSuccessMessage("Cuenta eliminada con éxito!");
+      
+      // Reload available tables since the deleted bill's table is now available
+      loadTables();
       
       setFormData({
         table: "",
@@ -280,7 +332,7 @@ export default function AdminAccountsPage() {
           <div style={{ padding: "2rem", textAlign: "center" }}>
             <p>Cargando cuentas...</p>
           </div>
-        ) : accounts.length === 0 ? (
+        ) : bills.length === 0 ? (
           <div style={{ padding: "2rem", textAlign: "center" }}>
             <p>No hay cuentas disponibles</p>
           </div>
@@ -299,9 +351,9 @@ export default function AdminAccountsPage() {
                 >
                   <div className="admin-reservation-row-left">
                     <span className="admin-reservation-row-code">{bill.code}</span>
-                    <h3>{bill.table_code ? `Mesa ${bill.table_code}` : "Sin mesa"}</h3>
+                    <h3>{bill.table?.code ? `${bill.table.code}` : "Sin mesa"}</h3>
                     <span className="admin-reservation-row-info">
-                      {date} · {time} · Mesero: {bill.waiter_name || "Sin asignar"} · Total: ${bill.total?.toFixed(2) || "0.00"} MXN
+                      {date} · {time} · Mesero: {bill.waiter?.name || "Sin asignar"} · Total: ${bill.total?.toFixed(2) || "0.00"} MXN
                     </span>
                   </div>
                   <div className="admin-reservation-row-right">
@@ -552,11 +604,11 @@ export default function AdminAccountsPage() {
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Mesa:</span>
-                          <span className="admin-view-value">{viewingAccount.table_code || "Sin mesa"}</span>
+                          <span className="admin-view-value">{viewingAccount.table?.code || "Sin mesa"}</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Mesero:</span>
-                          <span className="admin-view-value">{viewingAccount.waiter_name || "Sin asignar"}</span>
+                          <span className="admin-view-value">{viewingAccount.waiter?.name || "Sin asignar"}</span>
                         </div>
                         <div className="admin-view-item">
                           <span className="admin-view-label">Fecha:</span>

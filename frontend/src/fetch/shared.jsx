@@ -72,6 +72,30 @@ export async function getBills() {
   return response;
 }
 
+export async function getKitchenBills() {
+  let response = {
+    bills: [],
+    status: 0,
+    error: false,
+  };
+
+  try {
+    const apiResponse = await fetch(`/api/kitchen/get-bills/`, {
+      method: "GET",
+      credentials: "include",
+    });
+    const apiResult = apiResponse.status === 200 ? await apiResponse.json() : false;
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+    response.bills = apiResponse.status === 200 ? apiResult.bills : [];
+  } catch (error) {
+    response.error = true;
+  }
+
+  return response;
+}
+
 export async function getWaiterBills() {
   let response = {
     bills: [],
@@ -372,6 +396,90 @@ export async function assignTableToReservation(reservationId, tableCode) {
   } catch (error) {
     response.error = true;
     response.errorMessage = "Error al asignar mesa";
+  }
+
+  return response;
+}
+
+export async function createBill(tableId) {
+  let response = {
+    bill: null,
+    status: 0,
+    error: false,
+    errorMessage: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/waiter/create-bill/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        table: tableId,
+      }),
+    });
+
+    const apiResult = await apiResponse.status === 201 ? await apiResponse.json() : null;
+
+    if (apiResponse.status === 201) {
+      response.bill = apiResult;
+    } else {
+      const errorData = await apiResponse.json().catch(() => ({}));
+      response.errorMessage = errorData.error || "Error al crear cuenta";
+    }
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+  } catch (error) {
+    response.error = true;
+    response.errorMessage = "Error al crear cuenta";
+  }
+
+  return response;
+}
+
+export async function markPlateCooked(billPlateId, cooked = true) {
+  let response = {
+    success: false,
+    status: 0,
+    error: false,
+    errorMessage: null,
+  };
+
+  try {
+    const csrftoken = getCookie("csrftoken");
+    const apiResponse = await fetch(`/api/kitchen/mark-plate-cooked/${billPlateId}/`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-CSRFTOKEN": csrftoken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cooked: cooked,
+      }),
+    });
+
+    const apiResult = await apiResponse.status === 200 ? await apiResponse.json() : null;
+
+    if (apiResponse.status === 200) {
+      response.success = true;
+      response.cooked = apiResult.cooked;
+      response.cooked_at = apiResult.cooked_at;
+    } else {
+      const errorData = await apiResponse.json().catch(() => ({}));
+      response.errorMessage = errorData.error || "Error al marcar platillo";
+    }
+
+    response.error = apiResponse.status === 500;
+    response.status = apiResponse.status;
+  } catch (error) {
+    response.error = true;
+    response.errorMessage = "Error al marcar platillo";
   }
 
   return response;
